@@ -994,14 +994,7 @@ function extractSnippet(fileContent, userRequest) {
 async function callClaude(userRequest, snippet) {
   const apiKey = getSetting('anthropicKey');
 
-  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request.
-
-Rules:
-- Only change visible text content, href values, or src values — never placeholder, aria-label, alt, or comment text unless explicitly requested
-- Phone numbers appear in <a href="tel:..."> tags or in plain text nodes — look for these specifically
-- Email addresses appear in <a href="mailto:..."> tags and as visible link text
-- Return only the raw modified HTML snippet with no wrapping tags, no explanation, no markdown, no code fences
-- Preserve all whitespace and indentation exactly as given`;
+  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request. Apply the change to the actual visible text content or href attributes — not to placeholder, aria-label, or comment text unless explicitly asked. Return only the modified snippet with no wrapping tags, no explanation, no markdown fences. Return raw HTML only.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
