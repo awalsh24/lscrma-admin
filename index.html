@@ -813,72 +813,43 @@ function newRequest() {
 }
 
 // ── DIFF ──
-function computeDiff(oldText, newText) {
-  const oldLines = oldText.split('\n');
-  const newLines = newText.split('\n');
-
-  let start = 0;
-  const minLen = Math.min(oldLines.length, newLines.length);
-  while (start < minLen && oldLines[start] === newLines[start]) start++;
-
-  let oldEnd = oldLines.length - 1;
-  let newEnd = newLines.length - 1;
-  while (oldEnd > start && newEnd > start && oldLines[oldEnd] === newLines[newEnd]) {
-    oldEnd--;
-    newEnd--;
-  }
-
-  if (start > oldEnd && start > newEnd) {
-    return [{ type: 'ctx', text: '(no changes detected)' }];
-  }
-
-  const CONTEXT = 3;
-  const result  = [];
-  const ctxStart = Math.max(0, start - CONTEXT);
-
-  if (ctxStart > 0) result.push({ type: 'sep', text: `… ${ctxStart} unchanged lines …` });
-  for (let i = ctxStart; i < start; i++)   result.push({ type: 'ctx', text: oldLines[i] });
-  for (let i = start; i <= oldEnd; i++)    result.push({ type: 'del', text: oldLines[i] });
-  for (let i = start; i <= newEnd; i++)    result.push({ type: 'add', text: newLines[i] });
-
-  const ctxEnd = Math.min(oldLines.length - 1, oldEnd + CONTEXT);
-  for (let i = oldEnd + 1; i <= ctxEnd; i++) result.push({ type: 'ctx', text: oldLines[i] });
-  if (ctxEnd < oldLines.length - 1) result.push({ type: 'sep', text: `… ${oldLines.length - 1 - ctxEnd} unchanged lines …` });
-
-  return result;
-}
-
-function buildDiffElement(diffLines, onConfirm, onCancel) {
+// Builds a clean two-line diff block from a find/replace pair.
+function buildFindReplaceDiff(explanation, find, replace) {
   const wrap = document.createElement('div');
-
-  const addCount = diffLines.filter(l => l.type === 'add').length;
-  const delCount = diffLines.filter(l => l.type === 'del').length;
 
   const summary = document.createElement('p');
   summary.style.cssText = 'font-size:14px;color:#1A1A2E;margin-bottom:10px;';
-  summary.textContent = `Here's what will change — ${addCount} line${addCount !== 1 ? 's' : ''} added, ${delCount} removed.`;
+  summary.textContent = explanation;
   wrap.appendChild(summary);
 
   const block = document.createElement('div');
   block.className = 'diff-block';
-  diffLines.forEach(({ type, text }) => {
+
+  function makeLine(type, prefix, text) {
     const row = document.createElement('div');
     row.className = 'diff-line ' + type;
-    if (type === 'sep') {
-      row.textContent = text;
-    } else {
-      const prefix = document.createElement('span');
-      prefix.className = 'diff-prefix';
-      prefix.textContent = type === 'add' ? '+' : type === 'del' ? '−' : ' ';
-      const content = document.createElement('span');
-      content.className = 'diff-text';
-      content.textContent = text;
-      row.appendChild(prefix);
-      row.appendChild(content);
-    }
-    block.appendChild(row);
-  });
+    const pre = document.createElement('span');
+    pre.className = 'diff-prefix';
+    pre.textContent = prefix;
+    const content = document.createElement('span');
+    content.className = 'diff-text';
+    content.textContent = text;
+    row.appendChild(pre);
+    row.appendChild(content);
+    return row;
+  }
+
+  block.appendChild(makeLine('del', '−', find));
+  block.appendChild(makeLine('add', '+', replace));
   wrap.appendChild(block);
+
+  return wrap;
+}
+
+// Wraps a pre-built content element in a bubble with Confirm & Publish / Cancel buttons.
+function buildDiffElement(contentEl, onConfirm, onCancel) {
+  const wrap = document.createElement('div');
+  wrap.appendChild(contentEl);
 
   const actions = document.createElement('div');
   actions.className = 'diff-actions';
@@ -929,88 +900,10 @@ async function fetchFile() {
   return { content, sha: readData.sha };
 }
 
-// ── SNIPPET EXTRACTION ──
-// Extracts a 50-line window from fileContent centred on the best keyword match
-// for the user's request. Returns { snippet, startLine } where startLine is the
-// 0-based index of the first line of the window inside fileContent's line array.
-function extractSnippet(fileContent, userRequest) {
-  const lines = fileContent.split('\n');
-  const WINDOW = 50;
-
-  // Helper: given a 0-based pivot line, return the 50-line window snippet
-  function windowAt(pivot) {
-    const half      = Math.floor(WINDOW / 2);
-    const startLine = Math.max(0, pivot - half);
-    const endLine   = Math.min(lines.length - 1, startLine + WINDOW - 1);
-    return { snippet: lines.slice(startLine, endLine + 1).join('\n'), startLine, endLine };
-  }
-
-  // Fix 1 — tokenise by splitting on ALL non-alphanumeric chars so that
-  // "215-555-0000" yields ["215", "555", "0000"] rather than being dropped.
-  const tokens = userRequest
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(t => t.length > 0);
-
-  // Fix 3 — also try to extract candidate current values from "change X to Y"
-  // patterns: pull out digit runs and quoted strings from the request.
-  const extraTerms = [];
-  const digitRuns = userRequest.match(/\d[\d\-().+ ]*/g) || [];
-  digitRuns.forEach(d => {
-    d.split(/[^0-9]/).filter(p => p.length > 0).forEach(p => extraTerms.push(p));
-  });
-  const quoted = userRequest.match(/["']([^"']+)["']/g) || [];
-  quoted.forEach(q => extraTerms.push(q.replace(/["']/g, '').toLowerCase()));
-
-  const allTerms = [...new Set([...tokens, ...extraTerms])];
-
-  // Score each line
-  let bestLine  = -1;
-  let bestScore = 0;
-  lines.forEach((line, i) => {
-    const lower = line.toLowerCase();
-    let score = allTerms.reduce((n, t) => n + (lower.includes(t) ? 1 : 0), 0);
-    if (line.includes('href="tel:'))                    score += 20;
-    if (line.includes('href="mailto:'))                 score += 20;
-    if (line.includes('class="contact__link"'))         score += 10;
-    if (line.includes('class="footer__contact-link"'))  score += 10;
-    if (line.includes('placeholder'))                   score -= 20;
-    if (line.includes('type="tel"'))                    score -= 20;
-    if (line.includes('form-input'))                    score -= 20;
-    if (score > bestScore) { bestScore = score; bestLine = i; }
-  });
-
-  // Fix 2 — if nothing scored, fall back to a regex search for any digit
-  // sequence from the request directly against the full file string.
-  if (bestLine === -1 || bestScore === 0) {
-    const numberTokens = userRequest.match(/\d+/g) || [];
-    for (const num of numberTokens) {
-      const idx = lines.findIndex(l => l.includes(num));
-      if (idx !== -1) { bestLine = idx; break; }
-    }
-  }
-
-  // Still nothing — fall back to the middle of the file
-  if (bestLine === -1) bestLine = Math.floor(lines.length / 2);
-
-  return windowAt(bestLine);
-}
-
 // ── CLAUDE API ──
-// Sends only the relevant snippet; returns { modifiedSnippet, originalSnippet }
-async function callClaude(userRequest, snippet) {
+// Asks Claude for a JSON {find, replace, explanation} pair — no snippet needed.
+async function callClaude(userRequest) {
   const apiKey = getSetting('anthropicKey');
-
-  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request.
-
-Rules:
-- Only change visible text content, href values, or src values — never placeholder, aria-label, alt, or comment text unless explicitly requested
-- Phone numbers to change will be found in <a href="tel:..."> tags, never in placeholder attributes
-- Email addresses to change will be found in <a href="mailto:..."> tags and their visible link text
-- Never modify placeholder attributes unless the user explicitly says "change the placeholder"
-- If you see multiple instances of the same value, change all of them
-- Return only the raw modified HTML snippet with no wrapping tags, no explanation, no markdown, no code fences
-- Preserve all whitespace and indentation exactly as given`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1022,11 +915,25 @@ Rules:
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      system: systemPrompt,
+      max_tokens: 500,
       messages: [{
         role: 'user',
-        content: `Here is a snippet from the HTML file:\n\n<snippet>\n${snippet}\n</snippet>\n\nMake this change: ${userRequest}\n\nReturn only the modified snippet with the change applied. Do not return the full file. Do not add explanation.`
+        content: `The user wants to make this change to an HTML file: "${userRequest}"
+
+Respond with a JSON object in this exact format with no other text:
+{
+  "find": "exact string to find in the file",
+  "replace": "exact string to replace it with",
+  "explanation": "one sentence describing what will change"
+}
+
+Rules:
+- "find" must be the exact current text in the file including all whitespace and quotes
+- For phone numbers, target <a href="tel:..."> tags and their visible text
+- For emails, target <a href="mailto:..."> tags and their visible text
+- Never target placeholder attributes, aria-labels, or comments
+- If the same value appears multiple times, the find/replace will handle all instances automatically
+- Keep find and replace strings as short as possible while being unique enough to match correctly`
       }]
     })
   });
@@ -1037,10 +944,10 @@ Rules:
   }
 
   const data = await res.json();
-  let result  = data.content[0]?.text || '';
+  let raw = data.content[0]?.text || '';
   // Strip any accidental markdown fences
-  result = result.replace(/^```html\n?/i, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
-  return result;
+  raw = raw.replace(/^```json\n?/i, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
+  return JSON.parse(raw);
 }
 
 // ── GITHUB: WRITE FILE ──
@@ -1131,41 +1038,19 @@ async function makeChange() {
     currentSHA          = sha;
     pendingOriginalHTML = originalHTML;
 
-    // Step 2: extract the relevant snippet
-    const { snippet: originalSnippet } = extractSnippet(originalHTML, userRequest);
+    // Step 2: ask Claude for a find/replace pair
+    const { find, replace, explanation } = await callClaude(userRequest);
 
-    // Step 3: send only the snippet to Claude
-    let modifiedSnippet = await callClaude(userRequest, originalSnippet);
-
-    // Strip any <snippet> wrapper tags Claude may have added
-    modifiedSnippet = modifiedSnippet
-      .replace(/^<snippet>\n?/, '')
-      .replace(/\n?<\/snippet>$/, '')
-      .trim();
-
-    // Step 4: splice back in; if the snippet isn't found verbatim, try chunk fallback
-    let splicedHTML = originalHTML.replace(originalSnippet, modifiedSnippet);
-    if (splicedHTML === originalHTML) {
-      // Fix 4 — last resort: walk 50-line chunks until one produces a real change
-      const allLines = originalHTML.split('\n');
-      const CHUNK    = 50;
-      let found      = false;
-      for (let i = 0; i < allLines.length; i += CHUNK) {
-        const chunk    = allLines.slice(i, i + CHUNK).join('\n');
-        const modified = await callClaude(userRequest, chunk);
-        if (modified !== chunk) {
-          splicedHTML = originalHTML.replace(chunk, modified);
-          if (splicedHTML !== originalHTML) {
-            modifiedSnippet = modified;
-            found = true;
-            break;
-          }
-        }
-      }
-      if (!found) {
-        throw new Error('Could not locate the relevant section in the file — no changes were made.');
-      }
+    // Step 3: validate find string exists in the file
+    if (!originalHTML.includes(find)) {
+      throw new Error('Could not find that content in the file. Try being more specific.');
     }
+    if (find === replace) {
+      throw new Error('No change needed — that content already matches.');
+    }
+
+    // Step 4: apply replacement (split/join to replace ALL instances)
+    const splicedHTML = originalHTML.split(find).join(replace);
 
     // Step 5: length validation — reject if more than 5% shorter than the original
     if (splicedHTML.length < originalHTML.length * 0.95) {
@@ -1174,11 +1059,9 @@ async function makeChange() {
 
     pendingHTML = splicedHTML;
 
-    // Step 6: build diff and show in bubble
-    const diffLines = computeDiff(originalHTML, splicedHTML);
-
+    // Step 6: build simple two-line diff and show in bubble
     const diffEl = buildDiffElement(
-      diffLines,
+      buildFindReplaceDiff(explanation, find, replace),
       // onConfirm
       async (confirmBtn, cancelBtn, actionsEl) => {
         confirmBtn.disabled = true;
