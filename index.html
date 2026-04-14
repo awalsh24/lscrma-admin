@@ -872,18 +872,6 @@ function buildDiffElement(contentEl, onConfirm, onCancel) {
   return wrap;
 }
 
-// ── CURRENT VALUE EXTRACTION ──
-function extractCurrentValues(html) {
-  const values = {};
-  const telMatch = html.match(/href="tel:([^"]+)"/);
-  if (telMatch) values.currentTelHref = telMatch[1];
-  const telTextMatch = html.match(/<a href="tel:[^"]+"\s+class="contact__link">([^<]+)<\/a>/);
-  if (telTextMatch) values.currentPhoneText = telTextMatch[1].trim();
-  const emailMatch = html.match(/href="mailto:([^"]+)"/);
-  if (emailMatch) values.currentEmail = emailMatch[1];
-  return values;
-}
-
 // ── GITHUB: FETCH FILE ──
 async function fetchFile() {
   const user  = getSetting('githubUser');
@@ -914,15 +902,9 @@ async function fetchFile() {
 }
 
 // ── CLAUDE API ──
-// Asks Claude for a JSON array of {find, replace, explanation} operations.
-async function callClaude(userRequest, currentValues) {
+// Sends the full file to Claude; returns a JSON array of {find, replace, explanation} operations.
+async function callClaude(userRequest, currentContent) {
   const apiKey = getSetting('anthropicKey');
-
-  const valuesBlock = [
-    currentValues.currentTelHref  ? `- Phone href: ${currentValues.currentTelHref}`   : null,
-    currentValues.currentPhoneText ? `- Phone display text: ${currentValues.currentPhoneText}` : null,
-    currentValues.currentEmail     ? `- Email: ${currentValues.currentEmail}`           : null,
-  ].filter(Boolean).join('\n');
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -934,28 +916,29 @@ async function callClaude(userRequest, currentValues) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      messages: [{
-        role: 'user',
-        content: `The user wants to make this change to an HTML file: "${userRequest}"
+      max_tokens: 1000,
+      system: `You are a precise HTML editor. You will be given a complete HTML file and a change request.
 
-Current values found in the file:
-${valuesBlock}
-
-Respond with a JSON array of operations in this exact format with no other text:
-[
-  {
-    "find": "exact string to find in the file",
-    "replace": "exact string to replace it with",
-    "explanation": "one sentence describing what will change"
-  }
-]
+Your job is to identify the exact string(s) that need to change and return ONLY a JSON array of find/replace operations — nothing else. No explanation, no markdown, no code fences, just the raw JSON array.
 
 Rules:
-- "find" must use the exact current values listed above
-- For a phone number change, return two separate operations — one for the href value and one for the display text
-- Never target placeholder attributes, aria-labels, or comments
-- Keep find and replace strings as short as possible while being unique enough to match correctly`
+- "find" must be the exact substring as it appears in the file, including all whitespace, quotes, and special characters
+- "replace" is the new string that should take its place
+- Keep find strings as short as possible while still being unique in the file
+- For phone numbers: target both the href value (tel:+12152191152) and the visible text (+1 (215) 219-1152) as separate operations
+- For email: target both the href value (mailto:...) and visible text as separate operations
+- Never modify placeholder, aria-label, alt, or comment text unless explicitly asked
+- If content spans multiple lines, include the newlines in the find string exactly as they appear
+- Return an empty array [] if no change is needed
+
+Return format — raw JSON only, no wrapping:
+[
+  {"find": "exact current string", "replace": "new string", "explanation": "one sentence"},
+  {"find": "another current string", "replace": "another new string", "explanation": "one sentence"}
+]`,
+      messages: [{
+        role: 'user',
+        content: `Here is the complete HTML file:\n\n${currentContent}\n\nChange request: ${userRequest}`
       }]
     })
   });
@@ -966,10 +949,9 @@ Rules:
   }
 
   const data = await res.json();
-  let raw = data.content[0]?.text || '';
-  raw = raw.replace(/^```json\n?/i, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
-  const parsed = JSON.parse(raw);
-  // Normalise: always return an array
+  const raw = data.content.map(b => b.text || '').join('').trim();
+  const cleaned = raw.replace(/^```json\n?/i, '').replace(/^```\n?/, '').replace(/```$/, '').trim();
+  const parsed = JSON.parse(cleaned);
   return Array.isArray(parsed) ? parsed : [parsed];
 }
 
@@ -1061,9 +1043,8 @@ async function makeChange() {
     currentSHA          = sha;
     pendingOriginalHTML = originalHTML;
 
-    // Step 2: extract known current values and ask Claude for find/replace operations
-    const currentValues = extractCurrentValues(originalHTML);
-    const operations = await callClaude(userRequest, currentValues);
+    // Step 2: ask Claude for find/replace operations (sends full file)
+    const operations = await callClaude(userRequest, originalHTML);
 
     // Step 3: validate each find string exists, and that it differs from replace
     for (const op of operations) {
