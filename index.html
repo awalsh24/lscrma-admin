@@ -918,7 +918,12 @@ async function fetchFile() {
   }
 
   const readData = await res.json();
-  const content  = atob(readData.content.replace(/\n/g, ''));
+  const content  = decodeURIComponent(
+    atob(readData.content.replace(/\n/g, ''))
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
   return { content, sha: readData.sha };
 }
 
@@ -987,7 +992,7 @@ function extractSnippet(fileContent, userRequest) {
 async function callClaude(userRequest, snippet) {
   const apiKey = getSetting('anthropicKey');
 
-  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request. Return only the modified snippet with the change applied. Do not return the full file. Do not add explanation, comments, or markdown fences.`;
+  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request. Apply the change to the actual visible text content or href attributes — not to placeholder, aria-label, or comment text unless explicitly asked. Return only the modified snippet with no wrapping tags, no explanation, no markdown fences. Return raw HTML only.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1026,7 +1031,12 @@ async function writeFile(content, sha) {
   const repo    = getSetting('githubRepo');
   const file    = getSetting('githubFile') || 'index.html';
   const token   = getSetting('githubToken');
-  const encoded = btoa(unescape(encodeURIComponent(content)));
+  const encoded = btoa(
+    encodeURIComponent(content)
+      .replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode('0x' + p1)
+      )
+  );
 
   const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
     method: 'PUT',
@@ -1083,6 +1093,12 @@ async function makeChange() {
 
     // Step 3: send only the snippet to Claude
     let modifiedSnippet = await callClaude(userRequest, originalSnippet);
+
+    // Strip any <snippet> wrapper tags Claude may have added
+    modifiedSnippet = modifiedSnippet
+      .replace(/^<snippet>\n?/, '')
+      .replace(/\n?<\/snippet>$/, '')
+      .trim();
 
     // Step 4: splice back in; if the snippet isn't found verbatim, try chunk fallback
     let splicedHTML = originalHTML.replace(originalSnippet, modifiedSnippet);
