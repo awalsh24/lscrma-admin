@@ -664,9 +664,10 @@
 
 <script>
 // ── STATE ──
-let pendingHTML = null;
-let currentSHA  = null;
-let isLoading   = false;
+let pendingHTML         = null;
+let pendingOriginalHTML = null;  // original content for backup commit
+let currentSHA          = null;
+let isLoading           = false;
 
 // ── SETTINGS ──
 function loadSettings() {
@@ -804,9 +805,10 @@ function newRequest() {
   appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the LSCRMA website and I\'ll handle it for you.');
   document.getElementById('userInput').value = '';
   autoResize(document.getElementById('userInput'));
-  pendingHTML = null;
-  currentSHA  = null;
-  isLoading   = false;
+  pendingHTML         = null;
+  pendingOriginalHTML = null;
+  currentSHA          = null;
+  isLoading           = false;
   closeMobileSidebar();
 }
 
@@ -1026,18 +1028,16 @@ async function callClaude(userRequest, snippet) {
 }
 
 // ── GITHUB: WRITE FILE ──
-async function writeFile(content, sha) {
-  const user    = getSetting('githubUser');
-  const repo    = getSetting('githubRepo');
-  const file    = getSetting('githubFile') || 'index.html';
-  const token   = getSetting('githubToken');
-  const encoded = btoa(
-    encodeURIComponent(content)
+function encodeContent(str) {
+  return btoa(
+    encodeURIComponent(str)
       .replace(/%([0-9A-F]{2})/g, (_, p1) =>
         String.fromCharCode('0x' + p1)
       )
   );
+}
 
+async function putFile(user, repo, file, token, message, content, sha) {
   const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
     method: 'PUT',
     headers: {
@@ -1045,17 +1045,42 @@ async function writeFile(content, sha) {
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      message: 'Site update via LSCRMA Admin',
-      content: encoded,
-      sha: sha
-    })
+    body: JSON.stringify({ message, content: encodeContent(content), sha })
   });
-
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error('GitHub write failed: ' + (err.message || res.status));
   }
+  return res.json();
+}
+
+async function backupAndWrite(modifiedContent, originalContent, sha, userRequest) {
+  const user  = getSetting('githubUser');
+  const repo  = getSetting('githubRepo');
+  const file  = getSetting('githubFile') || 'index.html';
+  const token = getSetting('githubToken');
+
+  // Step 1: fresh read to get the latest SHA (avoids conflicts if tab was open a while)
+  const freshRes = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  if (!freshRes.ok) {
+    const err = await freshRes.json().catch(() => ({}));
+    throw new Error('Could not refresh file SHA: ' + (err.message || freshRes.status));
+  }
+  const freshData  = await freshRes.json();
+  const freshSHA   = freshData.sha;
+
+  // Step 2: backup commit — write the original content with the fresh SHA
+  const backupMsg  = 'Pre-edit backup — ' + userRequest.slice(0, 50);
+  const backupData = await putFile(user, repo, file, token, backupMsg, originalContent, freshSHA);
+  const backupSHA  = backupData.content.sha;
+
+  // Step 3: write the actual modified file using the backup commit's SHA
+  await putFile(user, repo, file, token, 'Site update via LSCRMA Admin', modifiedContent, backupSHA);
 }
 
 // ── MAIN FLOW ──
@@ -1072,8 +1097,9 @@ async function makeChange() {
 
   isLoading = true;
   setInputEnabled(false);
-  pendingHTML = null;
-  currentSHA  = null;
+  pendingHTML         = null;
+  pendingOriginalHTML = null;
+  currentSHA          = null;
 
   // Show user bubble
   appendUserBubble(userRequest);
@@ -1086,7 +1112,8 @@ async function makeChange() {
   try {
     // Step 1: fetch current file
     const { content: originalHTML, sha } = await fetchFile();
-    currentSHA = sha;
+    currentSHA          = sha;
+    pendingOriginalHTML = originalHTML;
 
     // Step 2: extract the relevant snippet
     const { snippet: originalSnippet } = extractSnippet(originalHTML, userRequest);
@@ -1142,7 +1169,7 @@ async function makeChange() {
         cancelBtn.disabled  = true;
         confirmBtn.textContent = 'Publishing…';
         try {
-          await writeFile(pendingHTML, currentSHA);
+          await backupAndWrite(pendingHTML, pendingOriginalHTML, currentSHA, userRequest);
           actionsEl.innerHTML = '<span style="color:#0D6B6B;font-size:13px;font-weight:500;">✓ Published — live within 2 minutes.</span>';
           pendingHTML = null;
           currentSHA  = null;
@@ -1158,9 +1185,10 @@ async function makeChange() {
       // onCancel
       (_actionsEl) => {
         _actionsEl.innerHTML = '<span style="color:#A0AEC0;font-size:13px;">Cancelled.</span>';
-        pendingHTML = null;
-        currentSHA  = null;
-        isLoading   = false;
+        pendingHTML         = null;
+        pendingOriginalHTML = null;
+        currentSHA          = null;
+        isLoading           = false;
         setInputEnabled(true);
       }
     );
