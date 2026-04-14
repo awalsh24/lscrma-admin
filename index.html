@@ -928,29 +928,58 @@ async function fetchFile() {
 // 0-based index of the first line of the window inside fileContent's line array.
 function extractSnippet(fileContent, userRequest) {
   const lines = fileContent.split('\n');
+  const WINDOW = 50;
 
-  // Build a list of keywords from the request (words longer than 3 chars)
-  const keywords = userRequest
+  // Helper: given a 0-based pivot line, return the 50-line window snippet
+  function windowAt(pivot) {
+    const half      = Math.floor(WINDOW / 2);
+    const startLine = Math.max(0, pivot - half);
+    const endLine   = Math.min(lines.length - 1, startLine + WINDOW - 1);
+    return { snippet: lines.slice(startLine, endLine + 1).join('\n'), startLine, endLine };
+  }
+
+  // Fix 1 — tokenise by splitting on ALL non-alphanumeric chars so that
+  // "215-555-0000" yields ["215", "555", "0000"] rather than being dropped.
+  const tokens = userRequest
     .toLowerCase()
-    .split(/\s+/)
-    .filter(w => w.length > 3)
-    .map(w => w.replace(/[^a-z0-9]/g, ''));
+    .split(/[^a-z0-9]+/)
+    .filter(t => t.length > 0);
 
-  // Score each line by how many keywords it contains
-  let bestLine = 0;
-  let bestScore = -1;
+  // Fix 3 — also try to extract candidate current values from "change X to Y"
+  // patterns: pull out digit runs and quoted strings from the request.
+  const extraTerms = [];
+  const digitRuns = userRequest.match(/\d[\d\-().+ ]*/g) || [];
+  digitRuns.forEach(d => {
+    d.split(/[^0-9]/).filter(p => p.length > 0).forEach(p => extraTerms.push(p));
+  });
+  const quoted = userRequest.match(/["']([^"']+)["']/g) || [];
+  quoted.forEach(q => extraTerms.push(q.replace(/["']/g, '').toLowerCase()));
+
+  const allTerms = [...new Set([...tokens, ...extraTerms])];
+
+  // Score each line
+  let bestLine  = -1;
+  let bestScore = 0;
   lines.forEach((line, i) => {
     const lower = line.toLowerCase();
-    const score = keywords.reduce((n, kw) => n + (lower.includes(kw) ? 1 : 0), 0);
+    const score = allTerms.reduce((n, t) => n + (lower.includes(t) ? 1 : 0), 0);
     if (score > bestScore) { bestScore = score; bestLine = i; }
   });
 
-  const WINDOW = 50;
-  const half   = Math.floor(WINDOW / 2);
-  const startLine = Math.max(0, bestLine - half);
-  const endLine   = Math.min(lines.length - 1, startLine + WINDOW - 1);
-  const snippet   = lines.slice(startLine, endLine + 1).join('\n');
-  return { snippet, startLine, endLine };
+  // Fix 2 — if nothing scored, fall back to a regex search for any digit
+  // sequence from the request directly against the full file string.
+  if (bestLine === -1 || bestScore === 0) {
+    const numberTokens = userRequest.match(/\d+/g) || [];
+    for (const num of numberTokens) {
+      const idx = lines.findIndex(l => l.includes(num));
+      if (idx !== -1) { bestLine = idx; break; }
+    }
+  }
+
+  // Still nothing — fall back to the middle of the file
+  if (bestLine === -1) bestLine = Math.floor(lines.length / 2);
+
+  return windowAt(bestLine);
 }
 
 // ── CLAUDE API ──
@@ -1053,12 +1082,30 @@ async function makeChange() {
     const { snippet: originalSnippet } = extractSnippet(originalHTML, userRequest);
 
     // Step 3: send only the snippet to Claude
-    const modifiedSnippet = await callClaude(userRequest, originalSnippet);
+    let modifiedSnippet = await callClaude(userRequest, originalSnippet);
 
-    // Step 4: splice the modified snippet back into the full file
-    const splicedHTML = originalHTML.replace(originalSnippet, modifiedSnippet);
+    // Step 4: splice back in; if the snippet isn't found verbatim, try chunk fallback
+    let splicedHTML = originalHTML.replace(originalSnippet, modifiedSnippet);
     if (splicedHTML === originalHTML) {
-      throw new Error('Could not locate the snippet in the file — no changes were made.');
+      // Fix 4 — last resort: walk 50-line chunks until one produces a real change
+      const allLines = originalHTML.split('\n');
+      const CHUNK    = 50;
+      let found      = false;
+      for (let i = 0; i < allLines.length; i += CHUNK) {
+        const chunk    = allLines.slice(i, i + CHUNK).join('\n');
+        const modified = await callClaude(userRequest, chunk);
+        if (modified !== chunk) {
+          splicedHTML = originalHTML.replace(chunk, modified);
+          if (splicedHTML !== originalHTML) {
+            modifiedSnippet = modified;
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        throw new Error('Could not locate the relevant section in the file — no changes were made.');
+      }
     }
 
     // Step 5: length validation — reject if more than 5% shorter than the original
