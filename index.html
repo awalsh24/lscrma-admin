@@ -922,11 +922,43 @@ async function fetchFile() {
   return { content, sha: readData.sha };
 }
 
+// ── SNIPPET EXTRACTION ──
+// Extracts a 50-line window from fileContent centred on the best keyword match
+// for the user's request. Returns { snippet, startLine } where startLine is the
+// 0-based index of the first line of the window inside fileContent's line array.
+function extractSnippet(fileContent, userRequest) {
+  const lines = fileContent.split('\n');
+
+  // Build a list of keywords from the request (words longer than 3 chars)
+  const keywords = userRequest
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(w => w.length > 3)
+    .map(w => w.replace(/[^a-z0-9]/g, ''));
+
+  // Score each line by how many keywords it contains
+  let bestLine = 0;
+  let bestScore = -1;
+  lines.forEach((line, i) => {
+    const lower = line.toLowerCase();
+    const score = keywords.reduce((n, kw) => n + (lower.includes(kw) ? 1 : 0), 0);
+    if (score > bestScore) { bestScore = score; bestLine = i; }
+  });
+
+  const WINDOW = 50;
+  const half   = Math.floor(WINDOW / 2);
+  const startLine = Math.max(0, bestLine - half);
+  const endLine   = Math.min(lines.length - 1, startLine + WINDOW - 1);
+  const snippet   = lines.slice(startLine, endLine + 1).join('\n');
+  return { snippet, startLine, endLine };
+}
+
 // ── CLAUDE API ──
-async function callClaude(userRequest, currentContent) {
+// Sends only the relevant snippet; returns { modifiedSnippet, originalSnippet }
+async function callClaude(userRequest, snippet) {
   const apiKey = getSetting('anthropicKey');
 
-  const systemPrompt = `You are a precise HTML editor. You will be given the complete current contents of an HTML file and a change request. Your job is to return the entire file with ONLY the requested change applied. Do not reformat, restructure, rewrite, or modify anything else. Do not add comments. Do not change whitespace patterns. Return only the raw HTML file contents with the single requested edit made.`;
+  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request. Return only the modified snippet with the change applied. Do not return the full file. Do not add explanation, comments, or markdown fences.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -938,11 +970,11 @@ async function callClaude(userRequest, currentContent) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 8000,
+      max_tokens: 2000,
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: `Here is the complete current index.html file:\n\n<file>\n${currentContent}\n</file>\n\nMake this change: ${userRequest}\n\nReturn the complete file with ONLY this change applied. Do not modify anything else.`
+        content: `Here is a snippet from the HTML file:\n\n<snippet>\n${snippet}\n</snippet>\n\nMake this change: ${userRequest}\n\nReturn only the modified snippet with the change applied. Do not return the full file. Do not add explanation.`
       }]
     })
   });
@@ -953,9 +985,10 @@ async function callClaude(userRequest, currentContent) {
   }
 
   const data = await res.json();
-  let html   = data.content[0]?.text || '';
-  html = html.replace(/^```html\n?/i, '').replace(/\n?```$/, '').trim();
-  return html;
+  let result  = data.content[0]?.text || '';
+  // Strip any accidental markdown fences
+  result = result.replace(/^```html\n?/i, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
+  return result;
 }
 
 // ── GITHUB: WRITE FILE ──
@@ -1016,18 +1049,27 @@ async function makeChange() {
     const { content: originalHTML, sha } = await fetchFile();
     currentSHA = sha;
 
-    // Step 2: call Claude
-    const newHTML = await callClaude(userRequest, originalHTML);
+    // Step 2: extract the relevant snippet
+    const { snippet: originalSnippet } = extractSnippet(originalHTML, userRequest);
 
-    // Step 3: validate length — reject if more than 20% shorter than the original
-    if (newHTML.length < originalHTML.length * 0.8) {
+    // Step 3: send only the snippet to Claude
+    const modifiedSnippet = await callClaude(userRequest, originalSnippet);
+
+    // Step 4: splice the modified snippet back into the full file
+    const splicedHTML = originalHTML.replace(originalSnippet, modifiedSnippet);
+    if (splicedHTML === originalHTML) {
+      throw new Error('Could not locate the snippet in the file — no changes were made.');
+    }
+
+    // Step 5: length validation — reject if more than 5% shorter than the original
+    if (splicedHTML.length < originalHTML.length * 0.95) {
       throw new Error('Something went wrong — the proposed change looks incorrect. No changes were made.');
     }
 
-    pendingHTML = newHTML;
+    pendingHTML = splicedHTML;
 
-    // Step 4: build diff and show in bubble
-    const diffLines = computeDiff(originalHTML, newHTML);
+    // Step 6: build diff and show in bubble
+    const diffLines = computeDiff(originalHTML, splicedHTML);
 
     const diffEl = buildDiffElement(
       diffLines,
