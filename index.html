@@ -969,7 +969,14 @@ function extractSnippet(fileContent, userRequest) {
   let bestScore = 0;
   lines.forEach((line, i) => {
     const lower = line.toLowerCase();
-    const score = allTerms.reduce((n, t) => n + (lower.includes(t) ? 1 : 0), 0);
+    let score = allTerms.reduce((n, t) => n + (lower.includes(t) ? 1 : 0), 0);
+    if (line.includes('href="tel:'))                    score += 20;
+    if (line.includes('href="mailto:'))                 score += 20;
+    if (line.includes('class="contact__link"'))         score += 10;
+    if (line.includes('class="footer__contact-link"'))  score += 10;
+    if (line.includes('placeholder'))                   score -= 20;
+    if (line.includes('type="tel"'))                    score -= 20;
+    if (line.includes('form-input'))                    score -= 20;
     if (score > bestScore) { bestScore = score; bestLine = i; }
   });
 
@@ -994,7 +1001,16 @@ function extractSnippet(fileContent, userRequest) {
 async function callClaude(userRequest, snippet) {
   const apiKey = getSetting('anthropicKey');
 
-  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request. Apply the change to the actual visible text content or href attributes — not to placeholder, aria-label, or comment text unless explicitly asked. Return only the modified snippet with no wrapping tags, no explanation, no markdown fences. Return raw HTML only.`;
+  const systemPrompt = `You are a precise HTML editor. You will be given a snippet from an HTML file and a change request.
+
+Rules:
+- Only change visible text content, href values, or src values — never placeholder, aria-label, alt, or comment text unless explicitly requested
+- Phone numbers to change will be found in <a href="tel:..."> tags, never in placeholder attributes
+- Email addresses to change will be found in <a href="mailto:..."> tags and their visible link text
+- Never modify placeholder attributes unless the user explicitly says "change the placeholder"
+- If you see multiple instances of the same value, change all of them
+- Return only the raw modified HTML snippet with no wrapping tags, no explanation, no markdown, no code fences
+- Preserve all whitespace and indentation exactly as given`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
