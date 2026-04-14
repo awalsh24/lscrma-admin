@@ -813,17 +813,9 @@ function newRequest() {
 }
 
 // ── DIFF ──
-// Builds a clean two-line diff block from a find/replace pair.
-function buildFindReplaceDiff(explanation, find, replace) {
+// Builds a diff block from an array of {find, replace, explanation} operations.
+function buildFindReplaceDiff(operations) {
   const wrap = document.createElement('div');
-
-  const summary = document.createElement('p');
-  summary.style.cssText = 'font-size:14px;color:#1A1A2E;margin-bottom:10px;';
-  summary.textContent = explanation;
-  wrap.appendChild(summary);
-
-  const block = document.createElement('div');
-  block.className = 'diff-block';
 
   function makeLine(type, prefix, text) {
     const row = document.createElement('div');
@@ -839,9 +831,18 @@ function buildFindReplaceDiff(explanation, find, replace) {
     return row;
   }
 
-  block.appendChild(makeLine('del', '−', find));
-  block.appendChild(makeLine('add', '+', replace));
-  wrap.appendChild(block);
+  operations.forEach((op, i) => {
+    const summary = document.createElement('p');
+    summary.style.cssText = 'font-size:14px;color:#1A1A2E;margin-bottom:8px;' + (i > 0 ? 'margin-top:14px;' : '');
+    summary.textContent = op.explanation;
+    wrap.appendChild(summary);
+
+    const block = document.createElement('div');
+    block.className = 'diff-block';
+    block.appendChild(makeLine('del', '−', op.find));
+    block.appendChild(makeLine('add', '+', op.replace));
+    wrap.appendChild(block);
+  });
 
   return wrap;
 }
@@ -869,6 +870,18 @@ function buildDiffElement(contentEl, onConfirm, onCancel) {
   wrap.appendChild(actions);
 
   return wrap;
+}
+
+// ── CURRENT VALUE EXTRACTION ──
+function extractCurrentValues(html) {
+  const values = {};
+  const telMatch = html.match(/href="tel:([^"]+)"/);
+  if (telMatch) values.currentTelHref = telMatch[1];
+  const telTextMatch = html.match(/<a href="tel:[^"]+"\s+class="contact__link">([^<]+)<\/a>/);
+  if (telTextMatch) values.currentPhoneText = telTextMatch[1].trim();
+  const emailMatch = html.match(/href="mailto:([^"]+)"/);
+  if (emailMatch) values.currentEmail = emailMatch[1];
+  return values;
 }
 
 // ── GITHUB: FETCH FILE ──
@@ -901,9 +914,15 @@ async function fetchFile() {
 }
 
 // ── CLAUDE API ──
-// Asks Claude for a JSON {find, replace, explanation} pair — no snippet needed.
-async function callClaude(userRequest) {
+// Asks Claude for a JSON array of {find, replace, explanation} operations.
+async function callClaude(userRequest, currentValues) {
   const apiKey = getSetting('anthropicKey');
+
+  const valuesBlock = [
+    currentValues.currentTelHref  ? `- Phone href: ${currentValues.currentTelHref}`   : null,
+    currentValues.currentPhoneText ? `- Phone display text: ${currentValues.currentPhoneText}` : null,
+    currentValues.currentEmail     ? `- Email: ${currentValues.currentEmail}`           : null,
+  ].filter(Boolean).join('\n');
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -915,24 +934,27 @@ async function callClaude(userRequest) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
+      max_tokens: 600,
       messages: [{
         role: 'user',
         content: `The user wants to make this change to an HTML file: "${userRequest}"
 
-Respond with a JSON object in this exact format with no other text:
-{
-  "find": "exact string to find in the file",
-  "replace": "exact string to replace it with",
-  "explanation": "one sentence describing what will change"
-}
+Current values found in the file:
+${valuesBlock}
+
+Respond with a JSON array of operations in this exact format with no other text:
+[
+  {
+    "find": "exact string to find in the file",
+    "replace": "exact string to replace it with",
+    "explanation": "one sentence describing what will change"
+  }
+]
 
 Rules:
-- "find" must be the exact current text in the file including all whitespace and quotes
-- For phone numbers, target <a href="tel:..."> tags and their visible text
-- For emails, target <a href="mailto:..."> tags and their visible text
+- "find" must use the exact current values listed above
+- For a phone number change, return two separate operations — one for the href value and one for the display text
 - Never target placeholder attributes, aria-labels, or comments
-- If the same value appears multiple times, the find/replace will handle all instances automatically
 - Keep find and replace strings as short as possible while being unique enough to match correctly`
       }]
     })
@@ -945,9 +967,10 @@ Rules:
 
   const data = await res.json();
   let raw = data.content[0]?.text || '';
-  // Strip any accidental markdown fences
   raw = raw.replace(/^```json\n?/i, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(raw);
+  const parsed = JSON.parse(raw);
+  // Normalise: always return an array
+  return Array.isArray(parsed) ? parsed : [parsed];
 }
 
 // ── GITHUB: WRITE FILE ──
@@ -1038,19 +1061,25 @@ async function makeChange() {
     currentSHA          = sha;
     pendingOriginalHTML = originalHTML;
 
-    // Step 2: ask Claude for a find/replace pair
-    const { find, replace, explanation } = await callClaude(userRequest);
+    // Step 2: extract known current values and ask Claude for find/replace operations
+    const currentValues = extractCurrentValues(originalHTML);
+    const operations = await callClaude(userRequest, currentValues);
 
-    // Step 3: validate find string exists in the file
-    if (!originalHTML.includes(find)) {
-      throw new Error('Could not find that content in the file. Try being more specific.');
-    }
-    if (find === replace) {
-      throw new Error('No change needed — that content already matches.');
+    // Step 3: validate each find string exists, and that it differs from replace
+    for (const op of operations) {
+      if (!originalHTML.includes(op.find)) {
+        throw new Error(`Could not find "${op.find}" in the file. Try being more specific.`);
+      }
+      if (op.find === op.replace) {
+        throw new Error('No change needed — that content already matches.');
+      }
     }
 
-    // Step 4: apply replacement (split/join to replace ALL instances)
-    const splicedHTML = originalHTML.split(find).join(replace);
+    // Step 4: apply all replacements sequentially
+    let splicedHTML = originalHTML;
+    for (const op of operations) {
+      splicedHTML = splicedHTML.split(op.find).join(op.replace);
+    }
 
     // Step 5: length validation — reject if more than 5% shorter than the original
     if (splicedHTML.length < originalHTML.length * 0.95) {
@@ -1059,9 +1088,9 @@ async function makeChange() {
 
     pendingHTML = splicedHTML;
 
-    // Step 6: build simple two-line diff and show in bubble
+    // Step 6: build diff showing all operations and show in bubble
     const diffEl = buildDiffElement(
-      buildFindReplaceDiff(explanation, find, replace),
+      buildFindReplaceDiff(operations),
       // onConfirm
       async (confirmBtn, cancelBtn, actionsEl) => {
         confirmBtn.disabled = true;
