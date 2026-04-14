@@ -907,7 +907,7 @@ async function fetchFile() {
 
   const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
     headers: {
-      'Authorization': 'Bearer ' + token,
+      'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
     }
   });
@@ -917,9 +917,9 @@ async function fetchFile() {
     throw new Error('Could not read file from GitHub: ' + (err.message || res.status));
   }
 
-  const data    = await res.json();
-  const content = atob(data.content.replace(/\n/g, ''));
-  return { content, sha: data.sha };
+  const readData = await res.json();
+  const content  = atob(readData.content.replace(/\n/g, ''));
+  return { content, sha: readData.sha };
 }
 
 // ── CLAUDE API ──
@@ -942,7 +942,7 @@ async function callClaude(userRequest, currentContent) {
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: `Here is the current HTML file:\n\n${currentContent}\n\n---\n\nChange request: ${userRequest}`
+        content: `Here is the complete current index.html file:\n\n<file>\n${currentContent}\n</file>\n\nMake this change: ${userRequest}\n\nReturn the complete file with ONLY this change applied. Do not modify anything else.`
       }]
     })
   });
@@ -1018,9 +1018,15 @@ async function makeChange() {
 
     // Step 2: call Claude
     const newHTML = await callClaude(userRequest, originalHTML);
+
+    // Step 3: validate length — reject if more than 20% shorter than the original
+    if (newHTML.length < originalHTML.length * 0.8) {
+      throw new Error('Something went wrong — the proposed change looks incorrect. No changes were made.');
+    }
+
     pendingHTML = newHTML;
 
-    // Step 3: build diff and show in bubble
+    // Step 4: build diff and show in bubble
     const diffLines = computeDiff(originalHTML, newHTML);
 
     const diffEl = buildDiffElement(
