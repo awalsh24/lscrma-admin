@@ -8,7 +8,9 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
+    --sidebar-bg: #1A1A2E;
     --teal: #1A8A8A;
+    --teal-bright: #2ABFBF;
     --teal-dark: #0D6B6B;
     --teal-focus: rgba(26,138,138,0.12);
     --text: #1A1A2E;
@@ -16,332 +18,323 @@
     --bg: #F8FAFB;
     --white: #FFFFFF;
     --border: #E2E8F0;
-    --success-bg: #E6F4F4;
-    --error-bg: #FEF2F2;
-    --error: #DC2626;
     --font: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --sidebar-w: 260px;
   }
 
   html, body {
     height: 100%;
-    background: var(--bg);
+    overflow: hidden;
     font-family: var(--font);
-    font-weight: 400;
-    line-height: 1.6;
+    background: var(--bg);
     color: var(--text);
   }
 
-  body {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    overflow: hidden;
-  }
-
-  /* ── PAGE WRAPPER ── */
-  .page-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 32px 24px 20px;
-    background: var(--bg);
-  }
-
-  .panel {
-    max-width: 900px;
-    margin: 0 auto;
-    width: 100%;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--white);
-    border-radius: 16px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.06);
-    overflow: hidden;
-  }
-
-  /* ── PANEL HEADER ── */
-  .panel-header {
-    padding: 28px 32px 0;
-    flex-shrink: 0;
-  }
-
-  .logotype {
-    margin-bottom: 6px;
-  }
-  .logotype-top {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--teal);
-    line-height: 1;
-    margin-bottom: 2px;
-  }
-  .logotype-main {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--teal);
-    line-height: 1;
-  }
-  .panel-subtitle {
-    font-size: 14px;
-    color: var(--muted);
-    margin-top: 6px;
-    margin-bottom: 20px;
-  }
-  .panel-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 0 -32px;
-  }
-
-  /* ── HEADER BAR (top of app) ── */
-  .top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0;
-    margin-bottom: 16px;
-    max-width: 900px;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .status-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
-    padding: 6px 12px;
-    background: var(--white);
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  }
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--border);
-  }
-  .status-dot.live {
-    background: var(--teal);
-  }
-
-  .settings-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 8px;
-    padding: 7px 14px;
-    font-size: 13px;
-    font-family: var(--font);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .settings-btn:hover {
-    border-color: var(--teal);
-    color: var(--teal);
-  }
-
-  /* ── APP BODY (sidebar + main) ── */
-  .app {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+  body { display: flex; flex-direction: row; }
 
   /* ── SIDEBAR ── */
   .sidebar {
-    width: 220px;
+    width: var(--sidebar-w);
     flex-shrink: 0;
-    border-right: 1px solid var(--border);
+    height: 100vh;
+    background: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    padding: 20px 0;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
-  .sidebar-section {
-    padding: 0 16px 20px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 20px;
+  /* Logotype */
+  .sidebar-logo {
+    padding: 28px 20px 22px;
+    text-align: center;
+    flex-shrink: 0;
   }
-  .sidebar-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
+  .logo-top {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal-bright);
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .logo-rule {
+    width: 60%;
+    margin: 0 auto 10px;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  .logo-main {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.02em;
   }
 
-  .sidebar-label {
+  /* New Request button */
+  .sidebar-new-btn {
+    display: block;
+    margin: 0 12px 20px;
+    padding: 10px 16px;
+    background: var(--teal);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .sidebar-new-btn:hover { background: var(--teal-dark); }
+
+  /* History */
+  .sidebar-section-label {
+    padding: 0 16px 8px;
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
-    padding: 0 4px;
+    color: rgba(255,255,255,0.4);
+    flex-shrink: 0;
   }
 
-  .quick-btn {
+  .sidebar-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+  }
+  .sidebar-history::-webkit-scrollbar { width: 3px; }
+  .sidebar-history::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .history-item {
     display: block;
     width: 100%;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 8px;
     padding: 9px 12px;
-    font-size: 12px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: rgba(255,255,255,0.7);
     font-family: var(--font);
-    font-weight: 500;
-    cursor: pointer;
+    font-size: 13px;
     text-align: left;
-    transition: all 0.18s;
-    margin-bottom: 6px;
-    line-height: 1.4;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .quick-btn:hover {
-    border-color: var(--teal);
-    background: var(--success-bg);
-    color: var(--teal-dark);
+  .history-item:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--white);
   }
-  .quick-btn:last-child { margin-bottom: 0; }
 
-  .site-link {
+  /* Sidebar bottom bar */
+  .sidebar-bottom {
+    flex-shrink: 0;
+    padding: 12px 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 9px 12px;
-    background: var(--success-bg);
-    border: 1px solid rgba(26,138,138,0.25);
-    border-radius: 8px;
-    text-decoration: none;
-    color: var(--teal);
-    font-size: 12px;
-    font-weight: 600;
-    transition: background 0.2s;
+    gap: 8px;
   }
-  .site-link:hover { background: rgba(26,138,138,0.15); }
-  .site-link-arrow { font-size: 14px; }
+  .sidebar-repo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .repo-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+  }
+  .repo-dot.live { background: #34D399; }
+  .repo-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar-gear {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 15px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  .sidebar-gear:hover { color: rgba(255,255,255,0.8); }
 
-  /* ── MAIN CHAT ── */
+  /* ── MAIN AREA ── */
   .main {
     flex: 1;
     display: flex;
     flex-direction: column;
+    height: 100vh;
     overflow: hidden;
+    background: var(--bg);
   }
 
+  /* Chat header */
+  .chat-header {
+    height: 48px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .chat-header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  /* Hamburger (mobile only) */
+  .hamburger {
+    display: none;
+    position: absolute;
+    left: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* Messages feed */
   .messages {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    scroll-behavior: smooth;
+    padding: 32px 24px;
   }
   .messages::-webkit-scrollbar { width: 4px; }
-  .messages::-webkit-scrollbar-track { background: transparent; }
   .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-  /* welcome state */
-  .welcome {
-    text-align: center;
-    margin: auto;
-    padding: 40px 24px;
-    max-width: 420px;
-  }
-  .welcome-icon {
-    width: 56px;
-    height: 56px;
-    background: var(--success-bg);
-    border: 1px solid rgba(26,138,138,0.25);
-    border-radius: 16px;
+  .messages-inner {
+    max-width: 720px;
+    margin: 0 auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 24px;
-    color: var(--teal);
-  }
-  .welcome h2 {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-  .welcome p {
-    font-size: 14px;
-    line-height: 1.7;
-    color: var(--muted);
+    flex-direction: column;
+    gap: 16px;
   }
 
-  /* message bubbles */
-  .msg { display: flex; gap: 10px; max-width: 720px; }
-  .msg.user { flex-direction: row-reverse; margin-left: auto; }
-
-  .msg-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+  /* Bubbles */
+  .bubble-row {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    flex-shrink: 0;
   }
-  .msg.user .msg-avatar {
-    background: var(--teal);
-    color: var(--white);
-  }
-  .msg.assistant .msg-avatar {
-    background: var(--success-bg);
-    border: 1px solid rgba(26,138,138,0.25);
-    color: var(--teal);
-  }
+  .bubble-row.user { justify-content: flex-end; }
+  .bubble-row.assistant { justify-content: flex-start; }
 
-  .msg-body { flex: 1; }
-
-  .msg-text {
-    padding: 12px 16px;
-    border-radius: 10px;
+  .bubble {
+    max-width: 80%;
     font-size: 14px;
     line-height: 1.6;
+    border-radius: 18px;
+    padding: 12px 16px;
+    word-break: break-word;
   }
-  .msg.user .msg-text {
+  .bubble-row.user .bubble {
     background: var(--teal);
     color: var(--white);
-    border-top-right-radius: 3px;
+    border-radius: 18px 18px 4px 18px;
   }
-  .msg.assistant .msg-text {
-    background: var(--bg);
+  .bubble-row.assistant .bubble {
+    background: var(--white);
     border: 1px solid var(--border);
     color: var(--text);
-    border-top-left-radius: 3px;
+    border-radius: 18px 18px 18px 4px;
+  }
+  .bubble-row.assistant.error .bubble {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    color: #991B1B;
   }
 
-  /* publish button inside message */
-  .publish-area {
-    margin-top: 10px;
+  /* Thinking dots */
+  .thinking-dots {
     display: flex;
+    gap: 5px;
     align-items: center;
+    padding: 4px 2px;
+  }
+  .thinking-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    opacity: 0.4;
+    animation: tdot 1.2s ease-in-out infinite;
+  }
+  .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes tdot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 0.7; transform: scale(1); } }
+
+  /* Diff block inside bubble */
+  .diff-block {
+    margin-top: 10px;
+    background: #1A1A2E;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .diff-block::-webkit-scrollbar { width: 3px; }
+  .diff-block::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+  .diff-line {
+    display: flex;
+    padding: 1px 12px;
+    font-family: "SF Mono", "Fira Code", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .diff-line.add { color: #2ABFBF; }
+  .diff-line.del { color: #FF6B6B; }
+  .diff-line.ctx { color: rgba(255,255,255,0.35); }
+  .diff-line.sep {
+    color: rgba(255,255,255,0.2);
+    font-size: 11px;
+    justify-content: center;
+    padding: 3px 12px;
+    font-style: italic;
+  }
+  .diff-prefix { width: 14px; flex-shrink: 0; }
+  .diff-text { flex: 1; overflow-x: hidden; text-overflow: ellipsis; }
+
+  /* Diff action buttons */
+  .diff-actions {
+    display: flex;
     gap: 8px;
+    margin-top: 12px;
     flex-wrap: wrap;
   }
-  .publish-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 18px;
+  .btn-confirm {
+    padding: 9px 20px;
     background: var(--teal);
     color: var(--white);
     border: none;
@@ -350,16 +343,13 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s;
   }
-  .publish-btn:hover { background: var(--teal-dark); }
-  .publish-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-confirm:hover { background: var(--teal-dark); }
+  .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .preview-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 14px;
+  .btn-cancel-diff {
+    padding: 9px 16px;
     background: none;
     border: 1px solid var(--border);
     color: var(--muted);
@@ -370,622 +360,549 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .preview-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .btn-cancel-diff:hover { border-color: #FECACA; color: #991B1B; }
+  .btn-cancel-diff:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .publish-status {
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .publish-status.ok {
-    color: var(--teal);
-    background: var(--success-bg);
-    border-left: 3px solid var(--teal);
-    border-radius: 4px;
-    padding: 4px 10px;
-  }
-  .publish-status.err {
-    color: var(--error);
-    background: var(--error-bg);
-    border-left: 3px solid var(--error);
-    border-radius: 4px;
-    padding: 4px 10px;
-  }
-
-  /* thinking indicator */
-  .thinking {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    border-top-left-radius: 3px;
-    font-size: 13px;
-    color: var(--muted);
-  }
-  .dots { display: flex; gap: 4px; }
-  .dots span {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--teal);
-    opacity: 0.4;
-    animation: dot 1.2s ease-in-out infinite;
-  }
-  .dots span:nth-child(2) { animation-delay: 0.2s; }
-  .dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes dot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
-
-  /* ── INPUT ── */
+  /* ── INPUT AREA ── */
   .input-area {
-    padding: 14px 28px 20px;
     flex-shrink: 0;
+    background: var(--white);
     border-top: 1px solid var(--border);
+    padding: 16px 24px;
   }
-
+  .input-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    position: relative;
+  }
   .input-box {
     display: flex;
     align-items: flex-end;
-    gap: 10px;
-    background: var(--white);
+    gap: 8px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 10px 12px;
+    background: var(--white);
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   .input-box:focus-within {
     border-color: var(--teal);
-    outline: none;
-    box-shadow: 0 0 0 3px var(--teal-focus);
+    box-shadow: 0 0 0 3px rgba(26,138,138,0.1);
   }
-
-  textarea {
+  #userInput {
     flex: 1;
-    background: none;
     border: none;
     outline: none;
-    color: var(--text);
+    background: none;
     font-family: var(--font);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
     resize: none;
-    min-height: 24px;
-    max-height: 140px;
+    min-height: 22px;
+    max-height: 120px;
+    overflow-y: auto;
   }
-  textarea::placeholder { color: var(--muted); }
+  #userInput::placeholder { color: #A0AEC0; }
+  #userInput:disabled { opacity: 0.5; }
 
-  .send-btn {
-    width: 34px;
-    height: 34px;
+  #sendBtn {
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
+    border-radius: 50%;
     background: var(--teal);
     border: none;
-    border-radius: 50px;
     color: var(--white);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease;
+    transition: background 0.2s, opacity 0.2s;
+    padding: 0;
   }
-  .send-btn:hover { background: var(--teal-dark); }
-  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .send-btn svg { width: 15px; height: 15px; }
+  #sendBtn:hover:not(:disabled) { background: var(--teal-dark); }
+  #sendBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+  #sendBtn svg { width: 15px; height: 15px; }
 
-  .input-hint {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 7px;
-    padding: 0 2px;
-  }
-
-  /* ── SETTINGS MODAL ── */
-  .modal-overlay {
+  /* ── SETTINGS PANEL ── */
+  .settings-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 200;
-    background: rgba(26,26,46,0.5);
-    backdrop-filter: blur(4px);
-    align-items: center;
-    justify-content: center;
+    z-index: 100;
+    background: rgba(0,0,0,0.3);
   }
-  .modal-overlay.open { display: flex; }
+  .settings-overlay.open { display: block; }
 
-  .modal {
+  .settings-panel {
+    position: fixed;
+    top: 0;
+    right: -340px;
+    width: 320px;
+    height: 100vh;
     background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 36px;
-    width: 100%;
-    max-width: 480px;
-    margin: 20px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.25s ease;
+    overflow-y: auto;
   }
+  .settings-panel.open { right: 0; }
 
-  .modal h3 {
-    font-size: 18px;
+  .settings-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .settings-panel-head h2 {
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: -0.02em;
     color: var(--text);
-    margin-bottom: 6px;
+    letter-spacing: -0.01em;
   }
-  .modal-sub {
-    font-size: 13px;
+  .settings-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
     color: var(--muted);
-    margin-bottom: 24px;
-    line-height: 1.6;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .settings-close:hover { color: var(--text); }
+
+  .settings-body {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .field { margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
   .field label {
-    display: block;
     font-size: 13px;
     font-weight: 500;
     color: var(--muted);
-    margin-bottom: 6px;
   }
   .field input {
-    width: 100%;
-    padding: 12px 16px;
-    background: var(--white);
+    padding: 11px 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--text);
     font-family: var(--font);
-    font-size: 15px;
+    font-size: 14px;
+    color: var(--text);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   .field input:focus {
     border-color: var(--teal);
-    box-shadow: 0 0 0 3px var(--teal-focus);
+    box-shadow: 0 0 0 3px rgba(26,138,138,0.1);
   }
-  .field input::placeholder { color: var(--muted); opacity: 0.7; }
-
+  .field input::placeholder { color: #A0AEC0; }
   .field-hint {
     font-size: 11px;
     color: var(--muted);
-    margin-top: 6px;
     line-height: 1.5;
   }
   .field-hint a { color: var(--teal); text-decoration: none; }
   .field-hint a:hover { text-decoration: underline; }
-
   .token-helper {
     font-size: 11px;
     color: var(--muted);
     font-style: italic;
-    margin-top: 5px;
   }
 
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 24px;
-  }
-
-  .btn-save {
-    flex: 1;
-    padding: 14px 32px;
+  .settings-save {
+    margin: 8px 24px 24px;
+    padding: 13px;
     background: var(--teal);
     color: var(--white);
     border: none;
     border-radius: 50px;
     font-family: var(--font);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
-  }
-  .btn-save:hover { background: var(--teal-dark); }
-
-  .btn-cancel {
-    padding: 14px 20px;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 50px;
-    font-family: var(--font);
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-cancel:hover { border-color: var(--teal); color: var(--teal); }
-
-  /* ── PREVIEW MODAL ── */
-  .preview-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 300;
-    background: rgba(26,26,46,0.7);
-    flex-direction: column;
-  }
-  .preview-overlay.open { display: flex; }
-
-  .preview-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px;
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
     flex-shrink: 0;
   }
-  .preview-header span { font-size: 13px; color: var(--muted); font-weight: 500; }
-  .preview-close {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: var(--font);
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-  .preview-close:hover { border-color: var(--error); color: var(--error); }
+  .settings-save:hover { background: var(--teal-dark); }
 
-  .preview-frame {
-    flex: 1;
-    border: none;
-    background: white;
-  }
-
-  /* ── PAGE FOOTER ── */
-  .page-footer {
-    text-align: center;
-    font-size: 12px;
-    color: var(--muted);
-    padding: 12px 0 16px;
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed;
+      left: -280px;
+      top: 0;
+      z-index: 50;
+      transition: left 0.25s ease;
+    }
+    .sidebar.open { left: 0; }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 49;
+      background: rgba(0,0,0,0.4);
+    }
+    .sidebar-overlay.open { display: block; }
+    .hamburger { display: flex; }
+    .chat-header { position: relative; }
   }
 </style>
 </head>
 <body>
 
-<div class="page-wrap">
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar" id="sidebar">
 
-  <!-- ── TOP BAR ── -->
-  <div class="top-bar">
-    <div></div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="status-badge" id="statusBadge">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="statusText">Not configured</span>
+  <div class="sidebar-logo">
+    <div class="logo-top">Life Sciences</div>
+    <hr class="logo-rule">
+    <div class="logo-main">CRM Advisors</div>
+    <div class="logo-sub">Site Manager</div>
+  </div>
+
+  <button class="sidebar-new-btn" onclick="newRequest()">+ New Request</button>
+
+  <div class="sidebar-section-label">Recent Changes</div>
+  <div class="sidebar-history">
+    <button class="history-item">Phone number update</button>
+    <button class="history-item">Hero text change</button>
+    <button class="history-item">About section edit</button>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-repo">
+      <div class="repo-dot" id="repoDot"></div>
+      <span class="repo-label" id="repoLabel">Not configured</span>
+    </div>
+    <button class="sidebar-gear" onclick="openSettings()" title="Settings">⚙</button>
+  </div>
+
+</aside>
+
+<!-- Mobile sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <div class="chat-header">
+    <button class="hamburger" id="hamburger" onclick="openMobileSidebar()">☰</button>
+    <span class="chat-header-title">LSCRMA Site Manager</span>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="messages-inner" id="messagesInner"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-inner">
+      <div class="input-box">
+        <textarea
+          id="userInput"
+          placeholder="Describe a change to make to the website..."
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button id="sendBtn" onclick="makeChange()" title="Send" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"/>
+            <polyline points="5 12 12 5 19 12"/>
+          </svg>
+        </button>
       </div>
-      <button class="settings-btn" onclick="openSettings()">⚙ Settings</button>
     </div>
   </div>
 
-  <!-- ── WHITE CARD PANEL ── -->
-  <div class="panel">
+</div>
 
-    <!-- Panel Header -->
-    <div class="panel-header">
-      <div class="logotype">
-        <div class="logotype-top">Life Sciences</div>
-        <div class="logotype-main">CRM Advisors</div>
-      </div>
-      <div class="panel-subtitle">Site Admin Panel</div>
-      <div class="panel-divider"></div>
-    </div>
-
-    <!-- App body -->
-    <div class="app">
-
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <div class="sidebar-section">
-          <div class="sidebar-label">Quick edits</div>
-          <button class="quick-btn" onclick="sendQuick('Update the contact phone number')">📞 Update phone number</button>
-          <button class="quick-btn" onclick="sendQuick('Add a new team member to the Leadership section')">👤 Add team member</button>
-          <button class="quick-btn" onclick="sendQuick('Update the About section text')">✏️ Edit About section</button>
-          <button class="quick-btn" onclick="sendQuick('Change the hero headline and subheading')">🏠 Edit hero text</button>
-          <button class="quick-btn" onclick="sendQuick('Add a new item to the Why LSCRMA section')">➕ Add a Why item</button>
-        </div>
-        <div class="sidebar-section">
-          <div class="sidebar-label">Your site</div>
-          <a class="site-link" href="https://awalsh24.github.io/lscrma.com" target="_blank">
-            View live site <span class="site-link-arrow">↗</span>
-          </a>
-        </div>
-        <div class="sidebar-section">
-          <div class="sidebar-label">How it works</div>
-          <p style="font-size:12px;color:var(--muted);line-height:1.7;padding:0 4px;">
-            Type a change in plain English. The AI will update your website code. Review it, then click <strong style="color:var(--text)">Publish</strong> to make it live instantly.
-          </p>
-        </div>
-      </aside>
-
-      <!-- MAIN -->
-      <main class="main">
-        <div class="messages" id="messages">
-          <div class="welcome" id="welcome">
-            <div class="welcome-icon">✦</div>
-            <h2>What would you like to change?</h2>
-            <p>Describe any update to your website in plain English — text, layout, colors, new sections, contact info — and it will be done for you.</p>
-          </div>
-        </div>
-
-        <div class="input-area">
-          <div class="input-box">
-            <textarea
-              id="userInput"
-              placeholder="e.g. Change the hero headline to 'Experts in Life Sciences CRM'"
-              rows="1"
-              onkeydown="handleKey(event)"
-              oninput="autoResize(this)"
-            ></textarea>
-            <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
-          </div>
-          <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
-        </div>
-      </main>
-    </div>
-
-  </div><!-- /panel -->
-
-  <div class="page-footer">Changes go live within 2 minutes.</div>
-
-</div><!-- /page-wrap -->
-
-<!-- ── SETTINGS MODAL ── -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <h3>Configuration</h3>
-    <p class="modal-sub">Set up your API keys once. They're saved in your browser and never sent anywhere except directly to Anthropic and GitHub.</p>
-
+<!-- ── SETTINGS PANEL ── -->
+<div class="settings-overlay" id="settingsOverlay" onclick="closeSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-panel-head">
+    <h2>Settings</h2>
+    <button class="settings-close" onclick="closeSettings()">×</button>
+  </div>
+  <div class="settings-body">
     <div class="field">
       <label>Anthropic API Key</label>
       <input type="password" id="anthropicKey" placeholder="sk-ant-..." autocomplete="off">
       <div class="field-hint">Get yours at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys</div>
     </div>
-
     <div class="field">
       <label>🔑 GitHub Personal Access Token</label>
       <input type="password" id="githubToken" placeholder="ghp_..." autocomplete="off">
-      <div class="field-hint">
-        <a href="https://github.com/settings/tokens/new" target="_blank">Create one here</a> — check the <strong>repo</strong> scope. This lets the tool push updates to your site.
-      </div>
-      <div class="token-helper">Your token is never stored or transmitted anywhere except directly to GitHub.</div>
+      <div class="field-hint"><a href="https://github.com/settings/tokens/new" target="_blank">Create one here</a> — enable the <strong>repo</strong> scope.</div>
+      <div class="token-helper">Never stored or transmitted anywhere except directly to GitHub.</div>
     </div>
-
     <div class="field">
       <label>GitHub Username</label>
       <input type="text" id="githubUser" placeholder="awalsh24">
     </div>
-
     <div class="field">
       <label>Repository Name</label>
       <input type="text" id="githubRepo" placeholder="lscrma.com">
     </div>
-
     <div class="field">
-      <label>HTML Filename in repo</label>
+      <label>HTML Filename</label>
       <input type="text" id="githubFile" placeholder="index.html">
     </div>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
-      <button class="btn-save" onclick="saveSettings()">Save & Connect</button>
-    </div>
   </div>
-</div>
-
-<!-- ── PREVIEW MODAL ── -->
-<div class="preview-overlay" id="previewOverlay">
-  <div class="preview-header">
-    <span>Preview — changes not yet published</span>
-    <button class="preview-close" onclick="closePreview()">✕ Close preview</button>
-  </div>
-  <iframe class="preview-frame" id="previewFrame"></iframe>
+  <button class="settings-save" onclick="saveSettings()">Save</button>
 </div>
 
 <script>
 // ── STATE ──
-let currentHTML = null; // the latest AI-generated HTML, waiting to publish
-let isLoading = false;
+let pendingHTML = null;
+let currentSHA  = null;
+let isLoading   = false;
 
 // ── SETTINGS ──
 function loadSettings() {
-  const keys = ['anthropicKey','githubToken','githubUser','githubRepo','githubFile'];
-  keys.forEach(k => {
+  ['anthropicKey','githubToken','githubUser','githubRepo','githubFile'].forEach(k => {
     const v = localStorage.getItem('lscrma_' + k);
     if (v) document.getElementById(k).value = v;
   });
-  // defaults
   if (!document.getElementById('githubUser').value) document.getElementById('githubUser').value = 'awalsh24';
   if (!document.getElementById('githubRepo').value) document.getElementById('githubRepo').value = 'lscrma.com';
   if (!document.getElementById('githubFile').value) document.getElementById('githubFile').value = 'index.html';
-  updateStatus();
+  updateRepoStatus();
 }
 
 function saveSettings() {
-  const keys = ['anthropicKey','githubToken','githubUser','githubRepo','githubFile'];
-  keys.forEach(k => {
+  ['anthropicKey','githubToken','githubUser','githubRepo','githubFile'].forEach(k => {
     localStorage.setItem('lscrma_' + k, document.getElementById(k).value.trim());
   });
   closeSettings();
-  updateStatus();
+  updateRepoStatus();
 }
 
 function getSetting(k) { return localStorage.getItem('lscrma_' + k) || ''; }
 
-function updateStatus() {
+function updateRepoStatus() {
   const configured = getSetting('anthropicKey') && getSetting('githubToken') && getSetting('githubUser');
-  const dot = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
+  const dot   = document.getElementById('repoDot');
+  const label = document.getElementById('repoLabel');
   if (configured) {
-    dot.className = 'status-dot live';
-    text.textContent = getSetting('githubUser') + '/' + getSetting('githubRepo');
+    dot.className   = 'repo-dot live';
+    label.textContent = getSetting('githubUser') + '/' + getSetting('githubRepo');
   } else {
-    dot.className = 'status-dot';
-    text.textContent = 'Not configured';
+    dot.className   = 'repo-dot';
+    label.textContent = 'Not configured';
   }
 }
 
-function openSettings() { document.getElementById('settingsModal').classList.add('open'); loadSettings(); }
-function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+function openSettings() {
+  loadSettings();
+  document.getElementById('settingsPanel').classList.add('open');
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settingsPanel').classList.remove('open');
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
 
-// click outside to close
-document.getElementById('settingsModal').addEventListener('click', function(e) {
-  if (e.target === this) closeSettings();
-});
+// ── MOBILE SIDEBAR ──
+function openMobileSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
 
-// ── MESSAGING ──
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+// ── CHAT UI ──
+function scrollToBottom() {
+  const feed = document.getElementById('messages');
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function appendBubble(role, contentEl) {
+  const feed = document.getElementById('messagesInner');
+  const row  = document.createElement('div');
+  row.className = 'bubble-row ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  if (typeof contentEl === 'string') {
+    bubble.textContent = contentEl;
+  } else {
+    bubble.appendChild(contentEl);
+  }
+  row.appendChild(bubble);
+  feed.appendChild(row);
+  scrollToBottom();
+  return { row, bubble };
+}
+
+function appendUserBubble(text) {
+  appendBubble('user', text);
+}
+
+function appendThinkingBubble() {
+  const dots = document.createElement('div');
+  dots.className = 'thinking-dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  const { row } = appendBubble('assistant', dots);
+  return {
+    replace(contentEl) {
+      const bubble = row.querySelector('.bubble');
+      bubble.innerHTML = '';
+      if (typeof contentEl === 'string') {
+        bubble.textContent = contentEl;
+      } else {
+        bubble.appendChild(contentEl);
+      }
+      scrollToBottom();
+      return bubble;
+    },
+    remove() { row.remove(); }
+  };
+}
+
+function appendErrorBubble(message) {
+  const { row } = appendBubble('assistant', message);
+  row.classList.add('error');
+}
+
+// ── INPUT HELPERS ──
+function setInputEnabled(enabled) {
+  document.getElementById('userInput').disabled = !enabled;
+  updateSendBtn();
+}
+
+function updateSendBtn() {
+  const val  = document.getElementById('userInput').value.trim();
+  const btn  = document.getElementById('sendBtn');
+  btn.disabled = !val || isLoading;
 }
 
 function autoResize(el) {
   el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  updateSendBtn();
 }
 
-function sendQuick(text) {
-  document.getElementById('userInput').value = text;
-  sendMessage();
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); makeChange(); }
 }
 
-function appendMessage(role, content, extra) {
-  const welcome = document.getElementById('welcome');
-  if (welcome) welcome.remove();
-
-  const msgs = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.className = 'msg ' + role;
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = role === 'user' ? 'JW' : 'AI';
-
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-
-  const text = document.createElement('div');
-  text.className = 'msg-text';
-  text.textContent = content;
-  body.appendChild(text);
-
-  if (extra) body.appendChild(extra);
-
-  div.appendChild(avatar);
-  div.appendChild(body);
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return { div, text, body };
+// ── NEW REQUEST ──
+function newRequest() {
+  document.getElementById('messagesInner').innerHTML = '';
+  appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the LSCRMA website and I\'ll handle it for you.');
+  document.getElementById('userInput').value = '';
+  autoResize(document.getElementById('userInput'));
+  pendingHTML = null;
+  currentSHA  = null;
+  isLoading   = false;
+  closeMobileSidebar();
 }
 
-function appendThinking() {
-  const welcome = document.getElementById('welcome');
-  if (welcome) welcome.remove();
+// ── DIFF ──
+function computeDiff(oldText, newText) {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
 
-  const msgs = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.className = 'msg assistant';
+  let start = 0;
+  const minLen = Math.min(oldLines.length, newLines.length);
+  while (start < minLen && oldLines[start] === newLines[start]) start++;
 
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = 'AI';
-
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-
-  const thinking = document.createElement('div');
-  thinking.className = 'thinking';
-  thinking.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> Working on your update…';
-  body.appendChild(thinking);
-
-  div.appendChild(avatar);
-  div.appendChild(body);
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return { div, body, thinking };
-}
-
-async function sendMessage() {
-  if (isLoading) return;
-
-  const input = document.getElementById('userInput');
-  const userText = input.value.trim();
-  if (!userText) return;
-
-  // check config
-  if (!getSetting('anthropicKey')) {
-    openSettings();
-    return;
+  let oldEnd = oldLines.length - 1;
+  let newEnd = newLines.length - 1;
+  while (oldEnd > start && newEnd > start && oldLines[oldEnd] === newLines[newEnd]) {
+    oldEnd--;
+    newEnd--;
   }
 
-  isLoading = true;
-  input.value = '';
-  input.style.height = 'auto';
-  document.getElementById('sendBtn').disabled = true;
+  if (start > oldEnd && start > newEnd) {
+    return [{ type: 'ctx', text: '(no changes detected)' }];
+  }
 
-  appendMessage('user', userText);
-  const { div: thinkDiv, body: thinkBody, thinking } = appendThinking();
+  const CONTEXT = 3;
+  const result  = [];
+  const ctxStart = Math.max(0, start - CONTEXT);
 
-  try {
-    // Step 1: fetch current site HTML from GitHub
-    let siteHTML = currentHTML;
-    if (!siteHTML) {
-      siteHTML = await fetchCurrentHTML();
+  if (ctxStart > 0) result.push({ type: 'sep', text: `… ${ctxStart} unchanged lines …` });
+  for (let i = ctxStart; i < start; i++)   result.push({ type: 'ctx', text: oldLines[i] });
+  for (let i = start; i <= oldEnd; i++)    result.push({ type: 'del', text: oldLines[i] });
+  for (let i = start; i <= newEnd; i++)    result.push({ type: 'add', text: newLines[i] });
+
+  const ctxEnd = Math.min(oldLines.length - 1, oldEnd + CONTEXT);
+  for (let i = oldEnd + 1; i <= ctxEnd; i++) result.push({ type: 'ctx', text: oldLines[i] });
+  if (ctxEnd < oldLines.length - 1) result.push({ type: 'sep', text: `… ${oldLines.length - 1 - ctxEnd} unchanged lines …` });
+
+  return result;
+}
+
+function buildDiffElement(diffLines, onConfirm, onCancel) {
+  const wrap = document.createElement('div');
+
+  const addCount = diffLines.filter(l => l.type === 'add').length;
+  const delCount = diffLines.filter(l => l.type === 'del').length;
+
+  const summary = document.createElement('p');
+  summary.style.cssText = 'font-size:14px;color:#1A1A2E;margin-bottom:10px;';
+  summary.textContent = `Here's what will change — ${addCount} line${addCount !== 1 ? 's' : ''} added, ${delCount} removed.`;
+  wrap.appendChild(summary);
+
+  const block = document.createElement('div');
+  block.className = 'diff-block';
+  diffLines.forEach(({ type, text }) => {
+    const row = document.createElement('div');
+    row.className = 'diff-line ' + type;
+    if (type === 'sep') {
+      row.textContent = text;
+    } else {
+      const prefix = document.createElement('span');
+      prefix.className = 'diff-prefix';
+      prefix.textContent = type === 'add' ? '+' : type === 'del' ? '−' : ' ';
+      const content = document.createElement('span');
+      content.className = 'diff-text';
+      content.textContent = text;
+      row.appendChild(prefix);
+      row.appendChild(content);
     }
+    block.appendChild(row);
+  });
+  wrap.appendChild(block);
 
-    // Step 2: call Claude API
-    const newHTML = await callClaude(userText, siteHTML);
+  const actions = document.createElement('div');
+  actions.className = 'diff-actions';
 
-    // Step 3: show result with publish button
-    currentHTML = newHTML;
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn-confirm';
+  confirmBtn.textContent = 'Confirm & Publish';
+  confirmBtn.onclick = () => onConfirm(confirmBtn, cancelBtn, actions);
 
-    // replace thinking with result
-    thinkDiv.remove();
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-cancel-diff';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => onCancel(actions);
 
-    const publishArea = document.createElement('div');
-    publishArea.className = 'publish-area';
+  actions.appendChild(confirmBtn);
+  actions.appendChild(cancelBtn);
+  wrap.appendChild(actions);
 
-    const pubBtn = document.createElement('button');
-    pubBtn.className = 'publish-btn';
-    pubBtn.innerHTML = '↑ Publish to live site';
-    pubBtn.onclick = () => publishToGitHub(pubBtn, statusSpan);
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'preview-btn';
-    prevBtn.innerHTML = '⊡ Preview';
-    prevBtn.onclick = () => openPreview(newHTML);
-
-    const statusSpan = document.createElement('span');
-    statusSpan.className = 'publish-status';
-    statusSpan.textContent = 'Ready to publish';
-
-    publishArea.appendChild(pubBtn);
-    publishArea.appendChild(prevBtn);
-    publishArea.appendChild(statusSpan);
-
-    appendMessage('assistant', "Done! I've updated the site. Preview the changes below, then publish when you're ready.", publishArea);
-
-  } catch (err) {
-    thinkDiv.remove();
-    appendMessage('assistant', '⚠ Something went wrong: ' + err.message + '\n\nCheck your API keys in Settings and try again.');
-    console.error(err);
-  }
-
-  isLoading = false;
-  document.getElementById('sendBtn').disabled = false;
+  return wrap;
 }
 
-// ── GITHUB: FETCH CURRENT HTML ──
-async function fetchCurrentHTML() {
-  const user = getSetting('githubUser');
-  const repo = getSetting('githubRepo');
-  const file = getSetting('githubFile') || 'index.html';
+// ── GITHUB: FETCH FILE ──
+async function fetchFile() {
+  const user  = getSetting('githubUser');
+  const repo  = getSetting('githubRepo');
+  const file  = getSetting('githubFile') || 'index.html';
   const token = getSetting('githubToken');
 
   const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
@@ -996,28 +913,20 @@ async function fetchCurrentHTML() {
   });
 
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error('GitHub fetch failed: ' + (err.message || res.status));
+    const err = await res.json().catch(() => ({}));
+    throw new Error('Could not read file from GitHub: ' + (err.message || res.status));
   }
 
-  const data = await res.json();
-  // GitHub returns base64-encoded content
-  return atob(data.content.replace(/\n/g, ''));
+  const data    = await res.json();
+  const content = atob(data.content.replace(/\n/g, ''));
+  return { content, sha: data.sha };
 }
 
 // ── CLAUDE API ──
-async function callClaude(userRequest, siteHTML) {
+async function callClaude(userRequest, currentContent) {
   const apiKey = getSetting('anthropicKey');
 
-  const systemPrompt = `You are a website editor. The user will describe a change they want made to their website.
-You will receive the current complete HTML of the website and must return the COMPLETE updated HTML with the requested change applied.
-
-Rules:
-- Return ONLY the complete HTML document. No explanation, no markdown, no code fences.
-- Preserve all existing content, structure, and styling unless the user specifically asks to change it.
-- Make only the change the user requested.
-- Keep all scripts, styles, links, and IDs intact.
-- The response must start with <!DOCTYPE html> and be a fully valid HTML file.`;
+  const systemPrompt = `You are a precise HTML editor. You will be given the complete current contents of an HTML file and a change request. Your job is to return the entire file with ONLY the requested change applied. Do not reformat, restructure, rewrite, or modify anything else. Do not add comments. Do not change whitespace patterns. Return only the raw HTML file contents with the single requested edit made.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1031,105 +940,137 @@ Rules:
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8000,
       system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `Here is the current website HTML:\n\n${siteHTML}\n\n---\n\nPlease make this change: ${userRequest}`
-        }
-      ]
+      messages: [{
+        role: 'user',
+        content: `Here is the current HTML file:\n\n${currentContent}\n\n---\n\nChange request: ${userRequest}`
+      }]
     })
   });
 
   if (!res.ok) {
-    const err = await res.json();
+    const err = await res.json().catch(() => ({}));
     throw new Error('Claude API error: ' + (err.error?.message || res.status));
   }
 
   const data = await res.json();
-  let html = data.content[0]?.text || '';
-
-  // strip any accidental markdown fences
-  html = html.replace(/^```html\n?/i, '').replace(/\n?```$/,'').trim();
+  let html   = data.content[0]?.text || '';
+  html = html.replace(/^```html\n?/i, '').replace(/\n?```$/, '').trim();
   return html;
 }
 
-// ── GITHUB: PUBLISH ──
-async function publishToGitHub(btn, statusSpan) {
-  if (!currentHTML) return;
+// ── GITHUB: WRITE FILE ──
+async function writeFile(content, sha) {
+  const user    = getSetting('githubUser');
+  const repo    = getSetting('githubRepo');
+  const file    = getSetting('githubFile') || 'index.html';
+  const token   = getSetting('githubToken');
+  const encoded = btoa(unescape(encodeURIComponent(content)));
 
-  btn.disabled = true;
-  btn.textContent = 'Publishing…';
-  statusSpan.textContent = '';
+  const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: 'Site update via LSCRMA Admin',
+      content: encoded,
+      sha: sha
+    })
+  });
 
-  const user = getSetting('githubUser');
-  const repo = getSetting('githubRepo');
-  const file = getSetting('githubFile') || 'index.html';
-  const token = getSetting('githubToken');
-
-  try {
-    // get current file SHA (required for update)
-    const getRes = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
-
-    if (!getRes.ok) throw new Error('Could not fetch file SHA from GitHub');
-    const fileData = await getRes.json();
-    const sha = fileData.sha;
-
-    // commit updated file
-    const encoded = btoa(unescape(encodeURIComponent(currentHTML)));
-    const putRes = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: 'Site update via LSCRMA Manager',
-        content: encoded,
-        sha: sha
-      })
-    });
-
-    if (!putRes.ok) {
-      const err = await putRes.json();
-      throw new Error('GitHub push failed: ' + (err.message || putRes.status));
-    }
-
-    btn.textContent = '✓ Published!';
-    btn.style.background = '#0D6B6B';
-    statusSpan.className = 'publish-status ok';
-    statusSpan.textContent = 'Live in ~60 seconds';
-
-    // reset stored HTML so next request fetches fresh from GitHub
-    currentHTML = null;
-
-  } catch (err) {
-    btn.disabled = false;
-    btn.textContent = '↑ Publish to live site';
-    statusSpan.className = 'publish-status err';
-    statusSpan.textContent = err.message;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('GitHub write failed: ' + (err.message || res.status));
   }
 }
 
-// ── PREVIEW ──
-function openPreview(html) {
-  const frame = document.getElementById('previewFrame');
-  frame.srcdoc = html;
-  document.getElementById('previewOverlay').classList.add('open');
-}
-function closePreview() {
-  document.getElementById('previewOverlay').classList.remove('open');
+// ── MAIN FLOW ──
+async function makeChange() {
+  if (isLoading) return;
+
+  const userRequest = document.getElementById('userInput').value.trim();
+  if (!userRequest) return;
+
+  if (!getSetting('anthropicKey') || !getSetting('githubToken')) {
+    openSettings();
+    return;
+  }
+
+  isLoading = true;
+  setInputEnabled(false);
+  pendingHTML = null;
+  currentSHA  = null;
+
+  // Show user bubble
+  appendUserBubble(userRequest);
+  document.getElementById('userInput').value = '';
+  autoResize(document.getElementById('userInput'));
+
+  // Show thinking
+  const thinking = appendThinkingBubble();
+
+  try {
+    // Step 1: fetch current file
+    const { content: originalHTML, sha } = await fetchFile();
+    currentSHA = sha;
+
+    // Step 2: call Claude
+    const newHTML = await callClaude(userRequest, originalHTML);
+    pendingHTML = newHTML;
+
+    // Step 3: build diff and show in bubble
+    const diffLines = computeDiff(originalHTML, newHTML);
+
+    const diffEl = buildDiffElement(
+      diffLines,
+      // onConfirm
+      async (confirmBtn, cancelBtn, actionsEl) => {
+        confirmBtn.disabled = true;
+        cancelBtn.disabled  = true;
+        confirmBtn.textContent = 'Publishing…';
+        try {
+          await writeFile(pendingHTML, currentSHA);
+          actionsEl.innerHTML = '<span style="color:#0D6B6B;font-size:13px;font-weight:500;">✓ Published — live within 2 minutes.</span>';
+          pendingHTML = null;
+          currentSHA  = null;
+        } catch (err) {
+          appendErrorBubble(err.message);
+          confirmBtn.disabled    = false;
+          cancelBtn.disabled     = false;
+          confirmBtn.textContent = 'Confirm & Publish';
+        }
+        isLoading = false;
+        setInputEnabled(true);
+      },
+      // onCancel
+      (_actionsEl) => {
+        _actionsEl.innerHTML = '<span style="color:#A0AEC0;font-size:13px;">Cancelled.</span>';
+        pendingHTML = null;
+        currentSHA  = null;
+        isLoading   = false;
+        setInputEnabled(true);
+      }
+    );
+
+    thinking.replace(diffEl);
+
+  } catch (err) {
+    thinking.remove();
+    appendErrorBubble(err.message);
+    isLoading = false;
+    setInputEnabled(true);
+  }
 }
 
 // ── INIT ──
 loadSettings();
 
-// auto-open settings if not configured
+// Greeting message
+appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the LSCRMA website and I\'ll handle it for you.');
+
+// Auto-open settings if not configured
 if (!getSetting('anthropicKey') || !getSetting('githubToken')) {
   setTimeout(openSettings, 600);
 }
