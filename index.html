@@ -855,39 +855,6 @@ function newRequest() {
 
 // ── DIFF ──
 // Builds a diff block from an array of {find, replace, explanation} operations.
-function buildFindReplaceDiff(operations) {
-  const wrap = document.createElement('div');
-
-  function makeLine(type, prefix, text) {
-    const row = document.createElement('div');
-    row.className = 'diff-line ' + type;
-    const pre = document.createElement('span');
-    pre.className = 'diff-prefix';
-    pre.textContent = prefix;
-    const content = document.createElement('span');
-    content.className = 'diff-text';
-    content.textContent = text;
-    row.appendChild(pre);
-    row.appendChild(content);
-    return row;
-  }
-
-  operations.forEach((op, i) => {
-    const summary = document.createElement('p');
-    summary.style.cssText = 'font-size:14px;color:#1A1A2E;margin-bottom:8px;' + (i > 0 ? 'margin-top:14px;' : '');
-    summary.textContent = op.explanation;
-    wrap.appendChild(summary);
-
-    const block = document.createElement('div');
-    block.className = 'diff-block';
-    block.appendChild(makeLine('del', '−', op.find));
-    block.appendChild(makeLine('add', '+', op.replace));
-    wrap.appendChild(block);
-  });
-
-  return wrap;
-}
-
 // Wraps a pre-built content element in a bubble with three action buttons.
 function buildDiffElement(contentEl, priorPreviewSHA, onPublish, onDiscard) {
   const wrap = document.createElement('div');
@@ -1236,9 +1203,19 @@ async function makeChange() {
     // Write to preview branch immediately (before showing diff)
     await backupAndWrite(pendingHTML, pendingOriginalHTML, currentSHA, userRequest);
 
-    // Build diff and show in bubble with three action buttons
+    // Build explanation text and show in bubble with three action buttons
+    const explanationEl = (() => {
+      const wrap = document.createElement('div');
+      operations.forEach((op, i) => {
+        const p = document.createElement('p');
+        p.style.cssText = 'font-size:14px;color:#1A1A2E;' + (i > 0 ? 'margin-top:8px;' : '');
+        p.textContent = op.explanation;
+        wrap.appendChild(p);
+      });
+      return wrap;
+    })();
     const diffEl = buildDiffElement(
-      buildFindReplaceDiff(operations),
+      explanationEl,
       priorPreviewSHA,
       // onPublish
       async (previewBtn, publishBtn, discardBtn, actionsEl) => {
