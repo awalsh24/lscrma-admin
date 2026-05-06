@@ -81,7 +81,7 @@
   /* New Request button */
   .sidebar-new-btn {
     display: block;
-    margin: 0 12px 20px;
+    margin: 0 12px 10px;
     padding: 10px 16px;
     background: var(--teal);
     color: var(--white);
@@ -96,6 +96,29 @@
     flex-shrink: 0;
   }
   .sidebar-new-btn:hover { background: var(--teal-dark); }
+
+  /* Revert All Changes button */
+  .btn-revert-session {
+    display: block;
+    margin: 0 12px 20px;
+    padding: 9px 16px;
+    background: none;
+    border: 1px solid rgba(239,68,68,0.35);
+    color: rgba(239,68,68,0.75);
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-revert-session:hover {
+    border-color: rgba(239,68,68,0.65);
+    color: rgba(239,68,68,1);
+    background: rgba(239,68,68,0.06);
+  }
 
   /* History */
   .sidebar-section-label {
@@ -348,6 +371,21 @@
   .btn-confirm:hover { background: var(--teal-dark); }
   .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  .btn-publish-live {
+    padding: 9px 16px;
+    background: none;
+    border: 1px solid var(--teal);
+    color: var(--teal);
+    border-radius: 50px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-publish-live:hover { background: var(--teal-focus); }
+  .btn-publish-live:disabled { opacity: 0.5; cursor: not-allowed; }
+
   .btn-cancel-diff {
     padding: 9px 16px;
     background: none;
@@ -572,6 +610,7 @@
   </div>
 
   <button class="sidebar-new-btn" onclick="newRequest()">+ New Request</button>
+  <button class="btn-revert-session" onclick="handleRevertAll()">↩ Revert All Changes</button>
 
   <div class="sidebar-section-label">Recent Changes</div>
   <div class="sidebar-history">
@@ -665,9 +704,10 @@
 <script>
 // ── STATE ──
 let pendingHTML         = null;
-let pendingOriginalHTML = null;  // original content for backup commit
+let pendingOriginalHTML = null;
 let currentSHA          = null;
 let isLoading           = false;
+let sessionStartSHA     = null; // preview branch SHA at page load — used by "Revert All"
 
 // ── SETTINGS ──
 function loadSettings() {
@@ -802,13 +842,14 @@ function handleKey(e) {
 // ── NEW REQUEST ──
 function newRequest() {
   document.getElementById('messagesInner').innerHTML = '';
-  appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the LSCRMA website and I\'ll handle it for you.');
+  appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the website. Changes will appear on the preview site first at preview.lscrma-com.pages.dev. You can review them before publishing to the live site.');
   document.getElementById('userInput').value = '';
   autoResize(document.getElementById('userInput'));
   pendingHTML         = null;
   pendingOriginalHTML = null;
   currentSHA          = null;
   isLoading           = false;
+  // NOTE: sessionStartSHA is intentionally preserved across new requests
   closeMobileSidebar();
 }
 
@@ -847,39 +888,68 @@ function buildFindReplaceDiff(operations) {
   return wrap;
 }
 
-// Wraps a pre-built content element in a bubble with Confirm & Publish / Cancel buttons.
-function buildDiffElement(contentEl, onConfirm, onCancel) {
+// Wraps a pre-built content element in a bubble with three action buttons.
+function buildDiffElement(contentEl, priorPreviewSHA, onPublish, onDiscard) {
   const wrap = document.createElement('div');
   wrap.appendChild(contentEl);
 
   const actions = document.createElement('div');
   actions.className = 'diff-actions';
 
-  const confirmBtn = document.createElement('button');
-  confirmBtn.className = 'btn-confirm';
-  confirmBtn.textContent = 'Confirm & Publish';
-  confirmBtn.onclick = () => onConfirm(confirmBtn, cancelBtn, actions);
+  const previewBtn = document.createElement('button');
+  previewBtn.className = 'btn-confirm';
+  previewBtn.textContent = 'Open Preview';
+  previewBtn.onclick = () => {
+    window.open('https://preview.lscrma-com.pages.dev', '_blank');
+  };
 
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn-cancel-diff';
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.onclick = () => onCancel(actions);
+  const publishBtn = document.createElement('button');
+  publishBtn.className = 'btn-publish-live';
+  publishBtn.textContent = 'Publish to Live';
+  publishBtn.onclick = () => onPublish(previewBtn, publishBtn, discardBtn, actions);
 
-  actions.appendChild(confirmBtn);
-  actions.appendChild(cancelBtn);
+  const discardBtn = document.createElement('button');
+  discardBtn.className = 'btn-cancel-diff';
+  discardBtn.textContent = 'Discard';
+  discardBtn.onclick = () => onDiscard(previewBtn, publishBtn, discardBtn, actions, priorPreviewSHA);
+
+  actions.appendChild(previewBtn);
+  actions.appendChild(publishBtn);
+  actions.appendChild(discardBtn);
   wrap.appendChild(actions);
+
+  const note = document.createElement('p');
+  note.style.cssText = 'font-size:11px;color:#A0AEC0;margin-top:8px;';
+  note.textContent = 'Preview updates within 60 seconds of your change.';
+  wrap.appendChild(note);
 
   return wrap;
 }
 
-// ── GITHUB: FETCH FILE ──
+// ── GITHUB: GET BRANCH SHA ──
+async function getBranchSHA(branch, token) {
+  const user = getSetting('githubUser');
+  const repo = getSetting('githubRepo');
+  const res = await fetch(
+    `https://api.github.com/repos/${user}/${repo}/git/refs/heads/${branch}`,
+    { headers: { Authorization: `token ${token}` } }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('Could not get branch SHA: ' + (err.message || res.status));
+  }
+  const data = await res.json();
+  return data.object.sha;
+}
+
+// ── GITHUB: FETCH FILE (from preview branch) ──
 async function fetchFile() {
   const user  = getSetting('githubUser');
   const repo  = getSetting('githubRepo');
   const file  = getSetting('githubFile') || 'index.html';
   const token = getSetting('githubToken');
 
-  const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
+  const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}?ref=preview`, {
     headers: {
       'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -965,7 +1035,9 @@ function encodeContent(str) {
   );
 }
 
-async function putFile(user, repo, file, token, message, content, sha) {
+async function putFile(user, repo, file, token, message, content, sha, branch) {
+  const body = { message, content: encodeContent(content), sha };
+  if (branch) body.branch = branch;
   const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
     method: 'PUT',
     headers: {
@@ -973,7 +1045,7 @@ async function putFile(user, repo, file, token, message, content, sha) {
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ message, content: encodeContent(content), sha })
+    body: JSON.stringify(body)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -988,8 +1060,8 @@ async function backupAndWrite(modifiedContent, originalContent, sha, userRequest
   const file  = getSetting('githubFile') || 'index.html';
   const token = getSetting('githubToken');
 
-  // Step 1: fresh read to get the latest SHA (avoids conflicts if tab was open a while)
-  const freshRes = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}`, {
+  // Step 1: fresh read from preview branch to get the latest file SHA
+  const freshRes = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${file}?ref=preview`, {
     headers: {
       'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -1002,13 +1074,95 @@ async function backupAndWrite(modifiedContent, originalContent, sha, userRequest
   const freshData  = await freshRes.json();
   const freshSHA   = freshData.sha;
 
-  // Step 2: backup commit — write the original content with the fresh SHA
+  // Step 2: backup commit — write the original content to the preview branch
   const backupMsg  = 'Pre-edit backup — ' + userRequest.slice(0, 50);
-  const backupData = await putFile(user, repo, file, token, backupMsg, originalContent, freshSHA);
+  const backupData = await putFile(user, repo, file, token, backupMsg, originalContent, freshSHA, 'preview');
   const backupSHA  = backupData.content.sha;
 
-  // Step 3: write the actual modified file using the backup commit's SHA
-  await putFile(user, repo, file, token, 'Site update via LSCRMA Admin', modifiedContent, backupSHA);
+  // Step 3: write the actual modified file to the preview branch
+  await putFile(user, repo, file, token, 'Site update via LSCRMA Admin', modifiedContent, backupSHA, 'preview');
+}
+
+// ── GITHUB: MERGE PREVIEW INTO MAIN ──
+async function mergeToMain(token) {
+  const user = getSetting('githubUser');
+  const repo = getSetting('githubRepo');
+  const res = await fetch(
+    `https://api.github.com/repos/${user}/${repo}/merges`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        base: 'main',
+        head: 'preview',
+        commit_message: 'Publish via LSCRMA Admin'
+      })
+    }
+  );
+  if (!res.ok) throw new Error('Merge failed');
+}
+
+// ── GITHUB: DISCARD ONE CHANGE (reset preview to before this change) ──
+async function discardChange(token, previousSHA) {
+  const user = getSetting('githubUser');
+  const repo = getSetting('githubRepo');
+  const res = await fetch(
+    `https://api.github.com/repos/${user}/${repo}/git/refs/heads/preview`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ sha: previousSHA, force: true })
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('Discard failed: ' + (err.message || res.status));
+  }
+}
+
+// ── GITHUB: REVERT ALL SESSION CHANGES ──
+async function revertSession(token) {
+  const user = getSetting('githubUser');
+  const repo = getSetting('githubRepo');
+  const res = await fetch(
+    `https://api.github.com/repos/${user}/${repo}/git/refs/heads/preview`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ sha: sessionStartSHA, force: true })
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('Revert failed: ' + (err.message || res.status));
+  }
+}
+
+// ── REVERT ALL HANDLER ──
+async function handleRevertAll() {
+  if (!sessionStartSHA) {
+    appendErrorBubble('No session start snapshot available — open Settings to configure your GitHub token, then try again.');
+    return;
+  }
+  const confirmed = confirm('This will undo all changes made in this session and restore the preview site to how it was when you opened this page. Are you sure?');
+  if (!confirmed) return;
+
+  const token = getSetting('githubToken');
+  try {
+    await revertSession(token);
+    appendBubble('assistant', '✓ All session changes reverted — preview restored to original state.');
+  } catch (err) {
+    appendErrorBubble(err.message);
+  }
 }
 
 // ── MAIN FLOW ──
@@ -1038,15 +1192,25 @@ async function makeChange() {
   const thinking = appendThinkingBubble();
 
   try {
-    // Step 1: fetch current file
-    const { content: originalHTML, sha } = await fetchFile();
+    const token = getSetting('githubToken');
+
+    // Capture preview branch tip SHA (for Discard) and fetch file in parallel
+    const [priorPreviewSHA, fileData] = await Promise.all([
+      getBranchSHA('preview', token),
+      fetchFile()
+    ]);
+
+    // Seed sessionStartSHA on first use
+    if (!sessionStartSHA) sessionStartSHA = priorPreviewSHA;
+
+    const { content: originalHTML, sha } = fileData;
     currentSHA          = sha;
     pendingOriginalHTML = originalHTML;
 
-    // Step 2: ask Claude for find/replace operations (sends full file)
+    // Ask Claude for find/replace operations (sends full file)
     const operations = await callClaude(userRequest, originalHTML);
 
-    // Step 3: validate each find string exists, and that it differs from replace
+    // Validate each find string exists, and that it differs from replace
     for (const op of operations) {
       if (!originalHTML.includes(op.find)) {
         throw new Error(`Could not find "${op.find}" in the file. Try being more specific.`);
@@ -1056,48 +1220,67 @@ async function makeChange() {
       }
     }
 
-    // Step 4: apply all replacements sequentially
+    // Apply all replacements sequentially
     let splicedHTML = originalHTML;
     for (const op of operations) {
       splicedHTML = splicedHTML.split(op.find).join(op.replace);
     }
 
-    // Step 5: length validation — reject if more than 5% shorter than the original
+    // Length validation — reject if more than 5% shorter than the original
     if (splicedHTML.length < originalHTML.length * 0.95) {
       throw new Error('Something went wrong — the proposed change looks incorrect. No changes were made.');
     }
 
     pendingHTML = splicedHTML;
 
-    // Step 6: build diff showing all operations and show in bubble
+    // Write to preview branch immediately (before showing diff)
+    await backupAndWrite(pendingHTML, pendingOriginalHTML, currentSHA, userRequest);
+
+    // Build diff and show in bubble with three action buttons
     const diffEl = buildDiffElement(
       buildFindReplaceDiff(operations),
-      // onConfirm
-      async (confirmBtn, cancelBtn, actionsEl) => {
-        confirmBtn.disabled = true;
-        cancelBtn.disabled  = true;
-        confirmBtn.textContent = 'Publishing…';
+      priorPreviewSHA,
+      // onPublish
+      async (previewBtn, publishBtn, discardBtn, actionsEl) => {
+        previewBtn.disabled = true;
+        publishBtn.disabled = true;
+        discardBtn.disabled = true;
+        publishBtn.textContent = 'Publishing…';
         try {
-          await backupAndWrite(pendingHTML, pendingOriginalHTML, currentSHA, userRequest);
-          actionsEl.innerHTML = '<span style="color:#0D6B6B;font-size:13px;font-weight:500;">✓ Published — live within 2 minutes.</span>';
+          await mergeToMain(token);
+          actionsEl.innerHTML = '<span style="color:#0D6B6B;font-size:13px;font-weight:500;">✓ Published to lscrma.com — live within 60 seconds.</span>';
           pendingHTML = null;
           currentSHA  = null;
         } catch (err) {
           appendErrorBubble(err.message);
-          confirmBtn.disabled    = false;
-          cancelBtn.disabled     = false;
-          confirmBtn.textContent = 'Confirm & Publish';
+          previewBtn.disabled    = false;
+          publishBtn.disabled    = false;
+          discardBtn.disabled    = false;
+          publishBtn.textContent = 'Publish to Live';
         }
         isLoading = false;
         setInputEnabled(true);
       },
-      // onCancel
-      (_actionsEl) => {
-        _actionsEl.innerHTML = '<span style="color:#A0AEC0;font-size:13px;">Cancelled.</span>';
-        pendingHTML         = null;
-        pendingOriginalHTML = null;
-        currentSHA          = null;
-        isLoading           = false;
+      // onDiscard
+      async (previewBtn, publishBtn, discardBtn, actionsEl, previousSHA) => {
+        previewBtn.disabled = true;
+        publishBtn.disabled = true;
+        discardBtn.disabled = true;
+        discardBtn.textContent = 'Discarding…';
+        try {
+          await discardChange(token, previousSHA);
+          actionsEl.innerHTML = '<span style="color:#A0AEC0;font-size:13px;">Change discarded — preview restored.</span>';
+          pendingHTML         = null;
+          pendingOriginalHTML = null;
+          currentSHA          = null;
+        } catch (err) {
+          appendErrorBubble(err.message);
+          previewBtn.disabled    = false;
+          publishBtn.disabled    = false;
+          discardBtn.disabled    = false;
+          discardBtn.textContent = 'Discard';
+        }
+        isLoading = false;
         setInputEnabled(true);
       }
     );
@@ -1116,7 +1299,14 @@ async function makeChange() {
 loadSettings();
 
 // Greeting message
-appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the LSCRMA website and I\'ll handle it for you.');
+appendBubble('assistant', 'Hi John — describe any change you\'d like to make to the website. Changes will appear on the preview site first at preview.lscrma-com.pages.dev. You can review them before publishing to the live site.');
+
+// Seed sessionStartSHA if token is already configured
+if (getSetting('githubToken') && getSetting('githubUser')) {
+  getBranchSHA('preview', getSetting('githubToken'))
+    .then(sha => { sessionStartSHA = sha; })
+    .catch(() => { /* will be seeded on first makeChange if token becomes valid */ });
+}
 
 // Auto-open settings if not configured
 if (!getSetting('anthropicKey') || !getSetting('githubToken')) {
